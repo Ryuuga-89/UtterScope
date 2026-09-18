@@ -9,7 +9,12 @@ from typer.testing import CliRunner
 
 from utterscope import __version__
 from utterscope.cli.app import app, format_duration
-from utterscope.models import AnalyzeResult, Segment, Transcript, TranscriptDocument
+from utterscope.models import (
+    AnalyzeResult,
+    Segment,
+    Transcript,
+    TranscriptDocument,
+)
 
 runner = CliRunner()
 
@@ -25,7 +30,7 @@ def test_format_duration() -> None:
     assert format_duration(3661) == "1h 1m 01s"
 
 
-def test_analyze_writes_transcript(
+def test_analyze_reports_progress(
     sample_audio: Path, tmp_path: Path
 ) -> None:
     output_dir = tmp_path / "out"
@@ -43,7 +48,14 @@ def test_analyze_writes_transcript(
         duration_seconds=1.0,
     )
 
-    with patch("utterscope.cli.app.run_pipeline", return_value=fake_result):
+    def fake_run(request, *, asr=None, progress=None):
+        assert progress is not None
+        progress.on_prepare_audio(1.0)
+        progress.on_transcribe(1)
+        progress.on_write_transcript(fake_result.transcript_path)
+        return fake_result
+
+    with patch("utterscope.cli.app.run_pipeline", side_effect=fake_run):
         result = runner.invoke(
             app,
             [

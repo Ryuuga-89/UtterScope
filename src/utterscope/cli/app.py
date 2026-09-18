@@ -12,7 +12,7 @@ from rich.panel import Panel
 from utterscope import __version__
 from utterscope.asr import AsrError
 from utterscope.audio import AudioPreparationError
-from utterscope.models import AnalyzeRequest, AnalyzeResult
+from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import run as run_pipeline
 
 app = typer.Typer(
@@ -40,6 +40,25 @@ def format_duration(seconds: float) -> str:
     if hours:
         return f"{hours}h {minutes}m {secs:02d}s"
     return f"{minutes}m {secs:02d}s"
+
+
+class CliProgress:
+    """Render pipeline step completions to the console."""
+
+    def on_prepare_audio(self, duration_seconds: float) -> None:
+        console.print(f"  Duration: {format_duration(duration_seconds)}")
+        console.print("  ✓ prepare audio")
+
+    def on_transcribe(self, segment_count: int) -> None:
+        console.print(f"  ✓ transcribe             ({segment_count} segments)")
+
+    def on_write_transcript(self, path: Path) -> None:
+        console.print()
+        console.print("  · detect speech          [dim]n/a (v0.2)[/dim]")
+        console.print("  · identify speakers      [dim]n/a (v0.2)[/dim]")
+        console.print("  · analyze learner speech [dim]n/a (v0.2)[/dim]")
+        console.print()
+        console.print(f"Transcript → {path}")
 
 
 @app.callback()
@@ -107,7 +126,7 @@ def analyze(
         )
 
     try:
-        result = run_pipeline(request)
+        run_pipeline(request, progress=CliProgress())
     except AudioPreparationError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
@@ -120,22 +139,3 @@ def analyze(
     except Exception as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
-
-    _print_summary(result)
-
-
-def _print_summary(result: AnalyzeResult) -> None:
-    if result.duration_seconds is not None:
-        console.print(
-            f"  Duration: {format_duration(result.duration_seconds)}"
-        )
-        console.print()
-
-    segment_count = len(result.document.transcript.segments)
-    console.print("  ✓ prepare audio")
-    console.print("  · detect speech          [dim]n/a (v0.2)[/dim]")
-    console.print(f"  ✓ transcribe             ({segment_count} segments)")
-    console.print("  · identify speakers      [dim]n/a (v0.2)[/dim]")
-    console.print("  · analyze learner speech [dim]n/a (v0.2)[/dim]")
-    console.print()
-    console.print(f"Transcript → {result.transcript_path}")

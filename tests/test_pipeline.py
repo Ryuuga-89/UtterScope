@@ -20,10 +20,28 @@ class FakeAsrBackend:
         )
 
 
+class RecordingProgress:
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    def on_prepare_audio(self, duration_seconds: float) -> None:
+        assert duration_seconds > 0
+        self.events.append("prepare_audio")
+
+    def on_transcribe(self, segment_count: int) -> None:
+        assert segment_count == 1
+        self.events.append("transcribe")
+
+    def on_write_transcript(self, path: Path) -> None:
+        assert path.is_file()
+        self.events.append("write_transcript")
+
+
 def test_run_transcribes_and_writes_json(
     sample_audio: Path, tmp_path: Path
 ) -> None:
     output_dir = tmp_path / "results"
+    progress = RecordingProgress()
 
     result = run(
         AnalyzeRequest(
@@ -33,6 +51,7 @@ def test_run_transcribes_and_writes_json(
             llm=False,
         ),
         asr=FakeAsrBackend(),
+        progress=progress,
     )
 
     prepared = output_dir / WORK_DIRNAME / PREPARED_FILENAME
@@ -42,3 +61,8 @@ def test_run_transcribes_and_writes_json(
     assert result.document.transcript.full_text == "Hello"
     assert result.duration_seconds is not None
     assert result.duration_seconds > 0
+    assert progress.events == [
+        "prepare_audio",
+        "transcribe",
+        "write_transcript",
+    ]
