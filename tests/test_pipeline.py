@@ -1,32 +1,33 @@
-"""Tests for the analyze pipeline stub."""
+"""Tests for the analyze pipeline."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+from utterscope.audio import PREPARED_FILENAME
 from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import TRANSCRIPT_FILENAME, run
+from utterscope.pipeline.analyze import WORK_DIRNAME
 
 
-def test_run_creates_output_dir_and_empty_document(tmp_path: Path) -> None:
-    audio = tmp_path / "lesson.mp3"
-    audio.write_bytes(b"fake")
+def test_run_prepares_audio_and_returns_empty_document(
+    sample_audio: Path, tmp_path: Path
+) -> None:
     output_dir = tmp_path / "results"
 
     result = run(
         AnalyzeRequest(
-            audio_path=audio,
+            audio_path=sample_audio,
             model="large-v3-turbo",
             output_dir=output_dir,
             llm=True,
         )
     )
 
-    assert output_dir.is_dir()
+    prepared = output_dir / WORK_DIRNAME / PREPARED_FILENAME
+    assert prepared.is_file()
     assert result.transcript_path == output_dir / TRANSCRIPT_FILENAME
     assert not result.transcript_path.exists()
-    assert result.document.source_audio == "lesson.mp3"
-    assert result.document.model == "large-v3-turbo"
-    assert result.document.transcript.segments == []
-    assert result.document.transcript.full_text == ""
-    assert result.duration_seconds is None
+    assert result.document.source_audio == sample_audio.name
+    assert result.duration_seconds is not None
+    assert result.duration_seconds > 0

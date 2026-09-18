@@ -31,3 +31,4 @@ htmlcov/
 !templates/**
 report.html
 results/
+.utterscope/

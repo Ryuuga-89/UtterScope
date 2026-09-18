@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from utterscope.audio import prepare_audio
 from utterscope.models import (
     AnalyzeRequest,
     AnalyzeResult,
@@ -10,16 +11,18 @@ from utterscope.models import (
 )
 
 TRANSCRIPT_FILENAME = "transcript.json"
+WORK_DIRNAME = ".utterscope"
 
 
 def run(request: AnalyzeRequest) -> AnalyzeResult:
     """Run the analyze pipeline for a single audio file.
 
-    v0.1 wiring stub: prepares the output directory and returns an empty
-    transcript document. Audio preprocessing and ASR are not implemented yet.
-    ``request.llm`` is accepted for CLI compatibility and ignored.
+    Prepares audio via FFmpeg, then returns an empty transcript document.
+    ASR is not implemented yet. ``request.llm`` is ignored in v0.1.
     """
     request.output_dir.mkdir(parents=True, exist_ok=True)
+    work_dir = request.output_dir / WORK_DIRNAME
+    prepared = prepare_audio(request.audio_path, work_dir)
 
     document = TranscriptDocument(
         source_audio=request.audio_path.name,
@@ -31,5 +34,5 @@ def run(request: AnalyzeRequest) -> AnalyzeResult:
     return AnalyzeResult(
         document=document,
         transcript_path=transcript_path,
-        duration_seconds=None,
+        duration_seconds=prepared.duration_seconds,
     )
