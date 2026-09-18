@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from utterscope import __version__
+from utterscope.asr import AsrError
 from utterscope.audio import AudioPreparationError
 from utterscope.models import AnalyzeRequest, AnalyzeResult
 from utterscope.pipeline import run as run_pipeline
@@ -92,8 +93,13 @@ def analyze(
         llm=llm,
     )
 
-    header = f"[bold]{audio.name}[/bold]"
-    console.print(Panel.fit(header, title="UtterScope", border_style="cyan"))
+    console.print(
+        Panel.fit(
+            f"[bold]{audio.name}[/bold]",
+            title="UtterScope",
+            border_style="cyan",
+        )
+    )
 
     if request.llm:
         console.print(
@@ -103,6 +109,9 @@ def analyze(
     try:
         result = run_pipeline(request)
     except AudioPreparationError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+    except AsrError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
     except OSError as exc:
@@ -122,13 +131,11 @@ def _print_summary(result: AnalyzeResult) -> None:
         )
         console.print()
 
+    segment_count = len(result.document.transcript.segments)
     console.print("  ✓ prepare audio")
     console.print("  · detect speech          [dim]n/a (v0.2)[/dim]")
-    console.print("  · transcribe             [yellow]pending[/yellow]")
+    console.print(f"  ✓ transcribe             ({segment_count} segments)")
     console.print("  · identify speakers      [dim]n/a (v0.2)[/dim]")
     console.print("  · analyze learner speech [dim]n/a (v0.2)[/dim]")
     console.print()
-    console.print(
-        "[yellow]Pipeline stub:[/yellow] transcription is not implemented yet."
-    )
-    console.print(f"Intended transcript → {result.transcript_path}")
+    console.print(f"Transcript → {result.transcript_path}")
