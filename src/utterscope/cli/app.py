@@ -10,8 +10,10 @@ from rich.panel import Panel
 
 from utterscope import __version__
 from utterscope.asr import AsrError
+from utterscope.asr.models import DEFAULT_ASR_MODEL
 from utterscope.audio import AudioPreparationError
 from utterscope.cli.console import console
+from utterscope.cli.interactive import run_interactive
 from utterscope.cli.learner import InteractiveLearnerSelector
 from utterscope.cli.progress import CliProgress
 from utterscope.cli.setup_cmd import run_setup
@@ -23,7 +25,7 @@ from utterscope.config import (
 )
 from utterscope.diarization import DiarizationError, FixedLearnerSelector
 from utterscope.llm import LlmError
-from utterscope.models import AnalyzeRequest
+from utterscope.models import AnalyzeRequest, AnalyzeResult
 from utterscope.pipeline import run as run_pipeline
 from utterscope.runtime import enable_quiet_mode
 from utterscope.vad import VadError
@@ -34,7 +36,8 @@ load_project_env()
 app = typer.Typer(
     name="utterscope",
     help="Local-first speaking analysis for language learners.",
-    no_args_is_help=True,
+    no_args_is_help=False,
+    invoke_without_command=True,
 )
 
 EXIT_USER_ERROR = 1
@@ -77,11 +80,34 @@ def main(
         ),
     ] = False,
 ) -> None:
-    """UtterScope CLI."""
+    """UtterScope CLI.
+
+    Run with no subcommand to start the interactive analyze flow.
+    """
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
     if not verbose:
         enable_quiet_mode()
+
+    if ctx.invoked_subcommand is not None:
+        return
+
+    try:
+        result = run_interactive(verbose=verbose)
+    except (typer.Abort, KeyboardInterrupt) as exc:
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
+    except _PIPELINE_ERRORS as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+    except OSError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+
+    _print_result(result)
 
 
 @app.command()
@@ -107,7 +133,7 @@ def analyze(
     model: Annotated[
         str,
         typer.Option("--model", help="ASR model to use."),
-    ] = "large-v3-turbo",
+    ] = DEFAULT_ASR_MODEL,
     llm: Annotated[
         bool,
         typer.Option("--llm/--no-llm", help="Enable optional LLM analysis."),
@@ -134,7 +160,7 @@ def analyze(
         typer.Option("--output", "-o", help="Directory for analysis outputs."),
     ] = None,
 ) -> None:
-    """Analyze a recorded lesson or conversation."""
+    """Analyze a recorded lesson or conversation (non-interactive flags)."""
     try:
         threshold = resolve_long_pause_threshold(long_pause_threshold)
     except ValueError as exc:
@@ -198,6 +224,10 @@ def analyze(
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
 
+    _print_result(result)
+
+
+def _print_result(result: AnalyzeResult) -> None:
     console.print()
     console.print(f"Transcript → {result.transcript_path}")
     if result.analysis_path is not None:

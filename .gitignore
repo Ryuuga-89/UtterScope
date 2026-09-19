@@ -38,3 +38,7 @@ report.html
 results/
 .utterscope/
 audio/
+/transcript.json
+/analysis.json
+/feedback.json
+*.ses

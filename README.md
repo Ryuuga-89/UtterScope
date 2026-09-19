@@ -176,7 +176,14 @@ Setup can save `HF_TOKEN` (pyannote) and `GEMINI_API_KEY` (Gemini feedback). Wit
 
 ## Usage
 
-Analyze a recorded lesson. When multiple speakers are detected, pick the learner with the ○/● radio UI:
+Run without arguments for the interactive flow (audio path → ASR model →
+analyze → learner → optional LLM provider/model):
+
+```bash
+utterscope
+```
+
+Or analyze a recorded lesson with flags. When multiple speakers are detected, pick the learner with the ○/● radio UI:
 
 ```bash
 utterscope analyze lesson.mp3

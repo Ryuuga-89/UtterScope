@@ -76,6 +76,11 @@ class GeminiFeedbackBackend:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=schema,
+                    # We only use structured JSON output, not tools/AFC.
+                    # Leaving AFC on triggers a SDK warning on every call.
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                        disable=True,
+                    ),
                 ),
             )
         except Exception as exc:

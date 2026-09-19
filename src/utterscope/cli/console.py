@@ -15,9 +15,15 @@ ANSI_CLEAR_LINE = "\033[2K"
 ANSI_BOLD = "\033[1m"
 ANSI_DIM = "\033[2m"
 ANSI_CYAN = "\033[36m"
+ANSI_YELLOW = "\033[33m"
 ANSI_RESET = "\033[0m"
 
 SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+
+def ansi_rgb(r: int, g: int, b: int) -> str:
+    """Truecolor foreground escape for ``(r, g, b)``."""
+    return f"\033[38;2;{r};{g};{b}m"
 
 
 class CliStream:

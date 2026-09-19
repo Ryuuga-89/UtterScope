@@ -13,24 +13,24 @@ def build_pass_a_prompt(
     learner_speaker: str,
 ) -> str:
     transcript = _format_turns(turns)
-    return f"""You are an English-speaking coach for language learners.
+    return f"""あなたは英語学習者向けのコーチです。
+フィードバックはすべて日本語で書いてください。
 
-Analyze the full conversation below. The learner (student) is {learner_speaker}.
-Other speakers are context only.
+下の会話全体を分析してください。学習者（student）は {learner_speaker} です。
+他の話者は文脈用です。
 
-Tasks:
-1. Write a concise summary (2-4 sentences) of the learner's overall
-   performance.
-2. List recurring patterns in the learner's speech
-   (grammar, naturalness, or vocabulary).
-   Only include patterns that appear more than once or are clearly habitual.
+タスク:
+1. 学習者の全体的なパフォーマンスを、日本語で簡潔に要約する（2〜4文）。
+2. 学習者の発話に繰り返し見られる傾向（grammar / naturalness / vocabulary）を
+   列挙する。複数回現れるもの、または習慣的なものだけを含める。
 
-Rules:
-- Focus recurring patterns on the learner, not the interlocutor.
-- Use short labels and concrete examples quoted from the learner when possible.
-- Respond only via the provided JSON schema.
+ルール:
+- recurring_patterns は学習者のみを対象にする（相手話者は対象外）。
+- summary / label / message は必ず日本語。
+- examples は学習者の発話からの英語原文引用。
+- 提供された JSON スキーマだけで応答する。
 
-Conversation:
+会話:
 {transcript}
 """
 
@@ -42,30 +42,30 @@ def build_pass_b_prompt(
     learner_speaker: str,
 ) -> str:
     context = _format_turns(window)
-    return f"""You are an English-speaking coach for language learners.
+    return f"""あなたは英語学習者向けのコーチです。
+フィードバックはすべて日本語で書いてください。
 
-The learner (student) is {learner_speaker}.
-You will review ONE learner turn in conversational context.
+学習者（student）は {learner_speaker} です。
+会話の文脈つきで、学習者の1ターンだけをレビューします。
 
-Target turn index: {target.index}
-Target text: {target.text!r}
-Target time range: {target.start:.2f}s – {target.end:.2f}s
+対象ターン index: {target.index}
+対象テキスト: {target.text!r}
+対象時間: {target.start:.2f}s – {target.end:.2f}s
 
-Surrounding context (for understanding only):
+周辺コンテキスト（理解用）:
 {context}
 
-Tasks:
-- Find grammar, naturalness, and vocabulary issues in the TARGET turn only.
-- scope="turn" for whole-turn feedback; scope="phrase" for a shorter
-  excerpt inside the target.
-- excerpt must be copied verbatim from the target text (do not rewrite it).
-- suggestion is an improved alternative when helpful.
-- If the target turn is fine, return an empty issues list.
+タスク:
+- 対象ターンのみについて、grammar / naturalness / vocabulary の問題を見つける。
+- ターン全体なら scope="turn"、短い箇所なら scope="phrase"。
+- excerpt は対象テキストからの英語原文をそのままコピー（書き換え禁止）。
+- message は日本語。suggestion は必要ならより自然な英語の言い換え。
+- 問題がなければ issues は空リスト。
 
-Rules:
-- Do not criticize other speakers.
-- Do not invent words that are not in the target text for excerpt.
-- Respond only via the provided JSON schema.
+ルール:
+- 他の話者を批判しない。
+- excerpt に対象テキストにない語を作らない。
+- 提供された JSON スキーマだけで応答する。
 """
 
 
