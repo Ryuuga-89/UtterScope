@@ -14,7 +14,8 @@ from utterscope.audio import AudioPreparationError
 from utterscope.cli.console import console
 from utterscope.cli.learner import InteractiveLearnerSelector
 from utterscope.cli.progress import CliProgress
-from utterscope.config import load_project_env
+from utterscope.cli.setup_cmd import run_setup
+from utterscope.config import load_project_env, resolve_long_pause_threshold
 from utterscope.diarization import DiarizationError, FixedLearnerSelector
 from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import run as run_pipeline
@@ -77,6 +78,12 @@ def main(
 
 
 @app.command()
+def setup() -> None:
+    """Interactively save local settings to ``.env``."""
+    run_setup()
+
+
+@app.command()
 def analyze(
     ctx: typer.Context,
     audio: Annotated[
@@ -105,12 +112,28 @@ def analyze(
             help="Learner speaker id (skips interactive selection).",
         ),
     ] = None,
+    long_pause_threshold: Annotated[
+        float | None,
+        typer.Option(
+            "--long-pause-threshold",
+            help=(
+                "Pauses at or above this many seconds count as long. "
+                "Overrides .env / setup (default: 1.0)."
+            ),
+        ),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Directory for analysis outputs."),
     ] = None,
 ) -> None:
     """Analyze a recorded lesson or conversation."""
+    try:
+        threshold = resolve_long_pause_threshold(long_pause_threshold)
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
+
     output_dir = (output or Path.cwd()).resolve()
     request = AnalyzeRequest(
         audio_path=audio,
@@ -118,6 +141,7 @@ def analyze(
         output_dir=output_dir,
         llm=llm,
         learner_speaker=learner,
+        long_pause_threshold_seconds=threshold,
     )
     verbose = bool(ctx.obj.get("verbose", False))
 

@@ -126,9 +126,23 @@ def test_analyze_reports_progress(
     assert "Metrics →" in result.output
 
 
-def test_analyze_missing_file_fails() -> None:
-    result = runner.invoke(app, ["analyze", "does-not-exist.mp3"])
+def test_analyze_rejects_non_positive_long_pause_threshold(
+    sample_audio: Path, tmp_path: Path
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            str(sample_audio),
+            "--no-llm",
+            "--long-pause-threshold",
+            "0",
+            "--output",
+            str(tmp_path / "out"),
+        ],
+    )
     assert result.exit_code != 0
+    assert "greater than 0" in result.output
 
 
 def test_analyze_invalid_audio_fails(tmp_path: Path) -> None:

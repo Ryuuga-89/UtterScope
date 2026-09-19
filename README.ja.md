@@ -169,12 +169,24 @@ UtterScopeを実行します。
 uv run utterscope analyze path/to/lesson.mp3
 ```
 
+初回は Hugging Face トークンを対話セットアップできます（話者分離用）。
+
+```bash
+uv run utterscope setup
+```
+
 ## 使い方
 
-録音されたレッスンを分析します。
+録音されたレッスンを分析します。話者が複数いる場合は、○/● の選択 UI で学習者を選びます。
 
 ```bash id="wnt6fp"
 utterscope analyze lesson.mp3
+```
+
+学習者をあらかじめ指定して対話選択をスキップします。
+
+```bash
+utterscope analyze lesson.mp3 --learner SPEAKER_01
 ```
 
 使用するASRモデルを指定します。
@@ -182,6 +194,14 @@ utterscope analyze lesson.mp3
 ```bash id="5ky9v9"
 utterscope analyze lesson.mp3 --model large-v3-turbo
 ```
+
+長いポーズとみなす秒数を変更します（CLI が最優先。未指定時は `.env` / setup の値、なければ 1.0）。
+
+```bash
+utterscope analyze lesson.mp3 --long-pause-threshold 1.5
+```
+
+`utterscope setup` でも同じ閾値を `.env` の `UTTERSCOPE_LONG_PAUSE_THRESHOLD` として保存できます。
 
 LLMによる分析を使用せずに実行します。
 
@@ -193,6 +213,14 @@ utterscope analyze lesson.mp3 --no-llm
 
 ```bash id="eqt32b"
 utterscope analyze lesson.mp3 --output ./results
+```
+
+出力例:
+
+```text
+./results/
+├── transcript.json   # 話者付き文字起こし
+└── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
 ```
 
 ## アーキテクチャ
