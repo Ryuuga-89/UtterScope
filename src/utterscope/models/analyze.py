@@ -6,6 +6,10 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from utterscope.models.analysis import (
+    DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS,
+    AnalysisDocument,
+)
 from utterscope.models.transcript import TranscriptDocument
 
 
@@ -17,7 +21,16 @@ class AnalyzeRequest(BaseModel):
     output_dir: Path
     llm: bool = Field(
         default=True,
-        description="Accepted for CLI compatibility; ignored in v0.1.",
+        description="Accepted for CLI compatibility; ignored until LLM lands.",
+    )
+    learner_speaker: str | None = Field(
+        default=None,
+        description="Selected learner speaker id, when already known.",
+    )
+    long_pause_threshold_seconds: float = Field(
+        default=DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS,
+        gt=0,
+        description="Pauses at or above this many seconds count as long.",
     )
 
 
@@ -31,3 +44,5 @@ class AnalyzeResult(BaseModel):
         ge=0,
         description="Source audio duration in seconds, when known.",
     )
+    analysis_document: AnalysisDocument | None = None
+    analysis_path: Path | None = None
