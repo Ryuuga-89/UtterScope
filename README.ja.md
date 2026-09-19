@@ -112,6 +112,7 @@ UtterScope
     │
     ├── transcript.json
     ├── analysis.json
+    ├── feedback.json   # optional (--llm)
     └── report.html
 ```
 
@@ -220,7 +221,8 @@ utterscope analyze lesson.mp3 --output ./results
 ```text
 ./results/
 ├── transcript.json   # 話者付き文字起こし
-└── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
+├── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
+└── feedback.json     # 任意の LLM フィードバック（--llm）
 ```
 
 ## アーキテクチャ

@@ -108,6 +108,7 @@ UtterScope
     │
     ├── transcript.json
     ├── analysis.json
+    ├── feedback.json   # optional (--llm)
     └── report.html
 ```
 
@@ -216,7 +217,8 @@ Outputs:
 ```text
 ./results/
 ├── transcript.json   # diarized transcript
-└── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
+├── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
+└── feedback.json     # optional LLM feedback (--llm)
 ```
 
 ## Architecture
