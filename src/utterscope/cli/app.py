@@ -6,66 +6,50 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.panel import Panel
 
 from utterscope import __version__
 from utterscope.asr import AsrError
 from utterscope.audio import AudioPreparationError
+from utterscope.cli.console import console
+from utterscope.cli.learner import InteractiveLearnerSelector
+from utterscope.cli.progress import CliProgress
+from utterscope.config import load_project_env
+from utterscope.diarization import DiarizationError, FixedLearnerSelector
 from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import run as run_pipeline
+from utterscope.runtime import enable_quiet_mode
 from utterscope.vad import VadError
+
+# Load project .env early so backends can read HF_TOKEN and similar secrets.
+load_project_env()
 
 app = typer.Typer(
     name="utterscope",
     help="Local-first speaking analysis for language learners.",
     no_args_is_help=True,
 )
-console = Console(stderr=True)
 
 EXIT_USER_ERROR = 1
 EXIT_RUNTIME_ERROR = 2
 
+_PIPELINE_ERRORS = (
+    AudioPreparationError,
+    VadError,
+    DiarizationError,
+    AsrError,
+)
+
 
 def version_callback(value: bool) -> None:
     if value:
-        # Version is useful on stdout for scripting.
         typer.echo(f"UtterScope {__version__}")
         raise typer.Exit()
 
 
-def format_duration(seconds: float) -> str:
-    total = int(round(seconds))
-    minutes, secs = divmod(total, 60)
-    hours, minutes = divmod(minutes, 60)
-    if hours:
-        return f"{hours}h {minutes}m {secs:02d}s"
-    return f"{minutes}m {secs:02d}s"
-
-
-class CliProgress:
-    """Render pipeline step completions to the console."""
-
-    def on_prepare_audio(self, duration_seconds: float) -> None:
-        console.print(f"  Duration: {format_duration(duration_seconds)}")
-        console.print("  ✓ prepare audio")
-
-    def on_detect_speech(self, interval_count: int) -> None:
-        console.print(f"  ✓ detect speech          ({interval_count} intervals)")
-
-    def on_transcribe(self, segment_count: int) -> None:
-        console.print(f"  ✓ transcribe             ({segment_count} segments)")
-
-    def on_write_transcript(self, path: Path) -> None:
-        console.print()
-        console.print("  · identify speakers      [dim]n/a (v0.2)[/dim]")
-        console.print("  · analyze learner speech [dim]n/a (v0.2)[/dim]")
-        console.print()
-        console.print(f"Transcript → {path}")
-
-
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: Annotated[
         bool,
         typer.Option(
@@ -76,12 +60,25 @@ def main(
             is_eager=True,
         ),
     ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show third-party library logs and warnings.",
+        ),
+    ] = False,
 ) -> None:
     """UtterScope CLI."""
+    ctx.ensure_object(dict)
+    ctx.obj["verbose"] = verbose
+    if not verbose:
+        enable_quiet_mode()
 
 
 @app.command()
 def analyze(
+    ctx: typer.Context,
     audio: Annotated[
         Path,
         typer.Argument(
@@ -101,6 +98,13 @@ def analyze(
         bool,
         typer.Option("--llm/--no-llm", help="Enable optional LLM analysis."),
     ] = True,
+    learner: Annotated[
+        str | None,
+        typer.Option(
+            "--learner",
+            help="Learner speaker id (skips interactive selection).",
+        ),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Directory for analysis outputs."),
@@ -113,7 +117,9 @@ def analyze(
         model=model,
         output_dir=output_dir,
         llm=llm,
+        learner_speaker=learner,
     )
+    verbose = bool(ctx.obj.get("verbose", False))
 
     console.print(
         Panel.fit(
@@ -122,26 +128,43 @@ def analyze(
             border_style="cyan",
         )
     )
-
     if request.llm:
         console.print(
-            "[dim]Note: --llm is accepted but ignored in v0.1.[/dim]"
+            "[dim]Note: --llm is accepted but ignored until LLM analysis lands.[/dim]"
         )
 
+    selector = (
+        FixedLearnerSelector(learner)
+        if learner is not None
+        else InteractiveLearnerSelector()
+    )
+    progress = CliProgress()
     try:
-        run_pipeline(request, progress=CliProgress())
-    except AudioPreparationError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
-    except VadError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
-    except AsrError as exc:
+        result = run_pipeline(
+            request,
+            progress=progress,
+            learner_selector=selector,
+            quiet=not verbose,
+        )
+    except (typer.Abort, KeyboardInterrupt) as exc:
+        progress.cancel()
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
+    except _PIPELINE_ERRORS as exc:
+        progress.cancel()
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
     except OSError as exc:
+        progress.cancel()
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_USER_ERROR) from exc
     except Exception as exc:
+        progress.cancel()
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+
+    console.print("  [dim]○[/dim] analyze learner speech  [dim]pending[/dim]")
+    console.print()
+    console.print(f"Transcript → {result.transcript_path}")
+    if result.learner_speaker is not None:
+        console.print(f"Learner → {result.learner_speaker}")

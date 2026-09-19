@@ -44,5 +44,6 @@ class AnalyzeResult(BaseModel):
         ge=0,
         description="Source audio duration in seconds, when known.",
     )
+    learner_speaker: str | None = None
     analysis_document: AnalysisDocument | None = None
     analysis_path: Path | None = None
