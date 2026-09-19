@@ -1,6 +1,6 @@
 [project]
 name = "utterscope"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first speaking analysis CLI for language learners"
 authors = [
     { name = "Ryuuga-89", email = "eyesharp06@gmail.com" }
