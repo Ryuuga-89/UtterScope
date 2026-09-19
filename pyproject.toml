@@ -1,6 +1,6 @@
 [project]
 name = "utterscope"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first speaking analysis CLI for language learners"
 authors = [
     { name = "Ryuuga-89", email = "eyesharp06@gmail.com" }
@@ -8,8 +8,12 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "mlx-whisper>=0.4.3",
+    "onnxruntime>=1.30.0",
+    "pyannote-audio>=4",
     "pydantic>=2.0",
+    "python-dotenv>=1.2.3",
     "rich>=13.0",
+    "silero-vad>=6.2.2",
     "typer>=0.12",
 ]
 

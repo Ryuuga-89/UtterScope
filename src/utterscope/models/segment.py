@@ -11,6 +11,10 @@ class Segment(BaseModel):
     start: float = Field(ge=0, description="Segment start time in seconds.")
     end: float = Field(ge=0, description="Segment end time in seconds.")
     text: str
+    speaker: str | None = Field(
+        default=None,
+        description="Diarization label such as SPEAKER_00, when known.",
+    )
 
     @model_validator(mode="after")
     def validate_time_range(self) -> Segment:

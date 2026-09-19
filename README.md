@@ -165,12 +165,24 @@ Run UtterScope:
 uv run utterscope analyze path/to/lesson.mp3
 ```
 
+For speaker diarization, run the interactive setup once to save a Hugging Face token:
+
+```bash
+uv run utterscope setup
+```
+
 ## Usage
 
-Analyze a recorded lesson:
+Analyze a recorded lesson. When multiple speakers are detected, pick the learner with the ○/● radio UI:
 
 ```bash
 utterscope analyze lesson.mp3
+```
+
+Skip interactive selection by passing a speaker id:
+
+```bash
+utterscope analyze lesson.mp3 --learner SPEAKER_01
 ```
 
 Specify an ASR model:
@@ -178,6 +190,14 @@ Specify an ASR model:
 ```bash
 utterscope analyze lesson.mp3 --model large-v3-turbo
 ```
+
+Change how long a pause must be to count as "long". The CLI flag wins; otherwise setup / `.env` (`UTTERSCOPE_LONG_PAUSE_THRESHOLD`) is used (default: 1.0s):
+
+```bash
+utterscope analyze lesson.mp3 --long-pause-threshold 1.5
+```
+
+You can also set the same value interactively with `utterscope setup`.
 
 Run without LLM-based analysis:
 
@@ -189,6 +209,14 @@ Export structured results:
 
 ```bash
 utterscope analyze lesson.mp3 --output ./results
+```
+
+Outputs:
+
+```text
+./results/
+├── transcript.json   # diarized transcript
+└── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
 ```
 
 ## Architecture
@@ -259,14 +287,14 @@ The core analysis pipeline should remain usable without running a web server or 
 
 ### v0.2 — Conversation analysis
 
-* [ ] voice activity detection
-* [ ] speaker diarization
-* [ ] learner-speaker selection
-* [ ] speaking time
-* [ ] speaking ratio
-* [ ] words per minute
-* [ ] pause analysis
-* [ ] filler detection
+* [x] voice activity detection
+* [x] speaker diarization
+* [x] learner-speaker selection
+* [x] speaking time
+* [x] speaking ratio
+* [x] words per minute
+* [x] pause analysis
+* [x] filler detection
 
 ### v0.3 — Language feedback
 
