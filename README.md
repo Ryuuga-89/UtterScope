@@ -251,11 +251,11 @@ The core analysis pipeline should remain usable without running a web server or 
 
 ### v0.1 — Transcription
 
-* [ ] Rich CLI
-* [ ] audio preprocessing
-* [ ] local Whisper transcription
-* [ ] timestamped transcript
-* [ ] JSON export
+* [x] Rich CLI
+* [x] audio preprocessing
+* [x] local Whisper transcription
+* [x] timestamped transcript
+* [x] JSON export
 
 ### v0.2 — Conversation analysis
 
