@@ -14,12 +14,19 @@ from utterscope.diarization import (
     assign_speakers,
     build_speaker_previews,
 )
-from utterscope.models import AnalyzeRequest, AnalyzeResult, TranscriptDocument
-from utterscope.report import write_transcript_document
+from utterscope.metrics import build_speaker_roles, compute_speaking_metrics
+from utterscope.models import (
+    AnalysisDocument,
+    AnalyzeRequest,
+    AnalyzeResult,
+    TranscriptDocument,
+)
+from utterscope.report import write_analysis_document, write_transcript_document
 from utterscope.runtime import silence_third_party
 from utterscope.vad import SileroVadBackend, VadBackend
 
 TRANSCRIPT_FILENAME = "transcript.json"
+ANALYSIS_FILENAME = "analysis.json"
 WORK_DIRNAME = ".utterscope"
 DEFAULT_NUM_SPEAKERS = 2
 
@@ -47,7 +54,7 @@ def run(
     """Run the analyze pipeline for a single audio file.
 
     Prepares audio, detects speech, transcribes, diarizes speakers,
-    selects the learner, and writes ``transcript.json``.
+    selects the learner, computes speaking metrics, and writes JSON outputs.
     """
     request.output_dir.mkdir(parents=True, exist_ok=True)
     work_dir = request.output_dir / WORK_DIRNAME
@@ -105,7 +112,31 @@ def run(
     request = request.model_copy(update={"learner_speaker": learner_speaker})
 
     if progress is not None:
-        progress.begin("write transcript")
+        progress.begin("analyze learner speech")
+    metrics = compute_speaking_metrics(
+        transcript,
+        learner_speaker=learner_speaker,
+        long_pause_threshold_seconds=request.long_pause_threshold_seconds,
+    )
+    analysis_document = AnalysisDocument(
+        source_audio=request.audio_path.name,
+        model=request.model,
+        learner_speaker=learner_speaker,
+        speakers=build_speaker_roles(
+            transcript,
+            learner_speaker=learner_speaker,
+        ),
+        metrics=metrics,
+        long_pause_threshold_seconds=request.long_pause_threshold_seconds,
+    )
+    if progress is not None:
+        progress.end(
+            "analyze learner speech",
+            f"{metrics.wpm:.0f} wpm",
+        )
+
+    if progress is not None:
+        progress.begin("write results")
     document = TranscriptDocument(
         source_audio=request.audio_path.name,
         model=request.model,
@@ -115,12 +146,18 @@ def run(
         document,
         request.output_dir / TRANSCRIPT_FILENAME,
     )
+    analysis_path = write_analysis_document(
+        analysis_document,
+        request.output_dir / ANALYSIS_FILENAME,
+    )
     if progress is not None:
-        progress.end("write transcript")
+        progress.end("write results")
 
     return AnalyzeResult(
         document=document,
         transcript_path=transcript_path,
         duration_seconds=prepared.duration_seconds,
         learner_speaker=learner_speaker,
+        analysis_document=analysis_document,
+        analysis_path=analysis_path,
     )

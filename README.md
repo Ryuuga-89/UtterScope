@@ -259,14 +259,14 @@ The core analysis pipeline should remain usable without running a web server or 
 
 ### v0.2 — Conversation analysis
 
-* [ ] voice activity detection
-* [ ] speaker diarization
-* [ ] learner-speaker selection
-* [ ] speaking time
-* [ ] speaking ratio
-* [ ] words per minute
-* [ ] pause analysis
-* [ ] filler detection
+* [x] voice activity detection
+* [x] speaker diarization
+* [x] learner-speaker selection
+* [x] speaking time
+* [x] speaking ratio
+* [x] words per minute
+* [x] pause analysis
+* [x] filler detection
 
 ### v0.3 — Language feedback
 

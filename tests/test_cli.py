@@ -10,8 +10,11 @@ from typer.testing import CliRunner
 from utterscope import __version__
 from utterscope.cli.app import app
 from utterscope.models import (
+    AnalysisDocument,
     AnalyzeResult,
     Segment,
+    SpeakerRole,
+    SpeakingMetrics,
     Transcript,
     TranscriptDocument,
 )
@@ -49,6 +52,25 @@ def test_analyze_reports_progress(
         transcript_path=output_dir / "transcript.json",
         duration_seconds=1.0,
         learner_speaker="SPEAKER_01",
+        analysis_path=output_dir / "analysis.json",
+        analysis_document=AnalysisDocument(
+            source_audio=sample_audio.name,
+            model="tiny",
+            learner_speaker="SPEAKER_01",
+            speakers=[
+                SpeakerRole(speaker_id="SPEAKER_01", role="student"),
+            ],
+            metrics=SpeakingMetrics(
+                speaking_time_seconds=1.0,
+                speaking_ratio=1.0,
+                wpm=60.0,
+                turn_count=1,
+                average_turn_seconds=1.0,
+                pause_count=0,
+                long_pause_count=0,
+                filler_count=0,
+            ),
+        ),
     )
 
     def fake_run(
@@ -72,8 +94,10 @@ def test_analyze_reports_progress(
         progress.end("transcribe", "1 segments")
         progress.begin("identify speakers")
         progress.end("identify speakers", "2 speakers")
-        progress.begin("write transcript")
-        progress.end("write transcript")
+        progress.begin("analyze learner speech")
+        progress.end("analyze learner speech", "60 wpm")
+        progress.begin("write results")
+        progress.end("write results")
         return fake_result
 
     with patch("utterscope.cli.app.run_pipeline", side_effect=fake_run):
@@ -95,11 +119,11 @@ def test_analyze_reports_progress(
     assert result.exit_code == 0
     assert "prepare audio" in result.output
     assert "✔" in result.output
-    assert "detect speech" in result.output
-    assert "identify speakers" in result.output
-    assert "transcribe" in result.output
+    assert "analyze learner speech" in result.output
     assert "Learner → SPEAKER_01" in result.output
     assert "Transcript →" in result.output
+    assert "Analysis →" in result.output
+    assert "Metrics →" in result.output
 
 
 def test_analyze_missing_file_fails() -> None:

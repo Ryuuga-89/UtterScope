@@ -163,8 +163,17 @@ def analyze(
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
 
-    console.print("  [dim]○[/dim] analyze learner speech  [dim]pending[/dim]")
     console.print()
     console.print(f"Transcript → {result.transcript_path}")
+    if result.analysis_path is not None:
+        console.print(f"Analysis → {result.analysis_path}")
     if result.learner_speaker is not None:
         console.print(f"Learner → {result.learner_speaker}")
+    if result.analysis_document is not None:
+        metrics = result.analysis_document.metrics
+        console.print(
+            f"Metrics → {metrics.speaking_time_seconds:.1f}s speaking, "
+            f"{metrics.speaking_ratio:.0%} ratio, "
+            f"{metrics.wpm:.0f} WPM, "
+            f"{metrics.filler_count} fillers"
+        )

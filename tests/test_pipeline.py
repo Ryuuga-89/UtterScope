@@ -86,6 +86,11 @@ def test_run_assigns_speakers_and_learner(
     assert result.learner_speaker == "SPEAKER_01"
     assert result.document.transcript.segments[0].speaker == "SPEAKER_00"
     assert result.document.transcript.segments[1].speaker == "SPEAKER_01"
+    assert result.analysis_path == output_dir / "analysis.json"
+    assert result.analysis_path.is_file()
+    assert result.analysis_document is not None
+    assert result.analysis_document.learner_speaker == "SPEAKER_01"
+    assert result.analysis_document.metrics.turn_count == 1
     assert progress.events == [
         "begin:prepare audio",
         "end:prepare audio:1.0s",
@@ -95,6 +100,8 @@ def test_run_assigns_speakers_and_learner(
         "end:transcribe:2 segments",
         "begin:identify speakers",
         "end:identify speakers:2 speakers",
-        "begin:write transcript",
-        "end:write transcript:",
+        "begin:analyze learner speech",
+        "end:analyze learner speech:60 wpm",
+        "begin:write results",
+        "end:write results:",
     ]
