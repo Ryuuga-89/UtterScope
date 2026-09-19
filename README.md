@@ -302,11 +302,11 @@ The core analysis pipeline should remain usable without running a web server or 
 
 ### v0.3 — Language feedback
 
-* [ ] optional LLM integration
-* [ ] grammar feedback
-* [ ] naturalness feedback
-* [ ] vocabulary analysis
-* [ ] recurring-error detection
+* [x] optional LLM integration
+* [x] grammar feedback
+* [x] naturalness feedback
+* [x] vocabulary analysis
+* [x] recurring-error detection
 
 ### v0.4 — Progress tracking
 
