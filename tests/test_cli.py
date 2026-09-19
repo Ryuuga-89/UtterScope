@@ -48,9 +48,10 @@ def test_analyze_reports_progress(
         duration_seconds=1.0,
     )
 
-    def fake_run(request, *, asr=None, progress=None):
+    def fake_run(request, *, asr=None, vad=None, progress=None):
         assert progress is not None
         progress.on_prepare_audio(1.0)
+        progress.on_detect_speech(2)
         progress.on_transcribe(1)
         progress.on_write_transcript(fake_result.transcript_path)
         return fake_result
@@ -71,6 +72,7 @@ def test_analyze_reports_progress(
 
     assert result.exit_code == 0
     assert "prepare audio" in result.output
+    assert "detect speech" in result.output
     assert "transcribe" in result.output
     assert "Transcript →" in result.output
 

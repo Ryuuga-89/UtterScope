@@ -14,6 +14,7 @@ from utterscope.asr import AsrError
 from utterscope.audio import AudioPreparationError
 from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import run as run_pipeline
+from utterscope.vad import VadError
 
 app = typer.Typer(
     name="utterscope",
@@ -49,12 +50,14 @@ class CliProgress:
         console.print(f"  Duration: {format_duration(duration_seconds)}")
         console.print("  ✓ prepare audio")
 
+    def on_detect_speech(self, interval_count: int) -> None:
+        console.print(f"  ✓ detect speech          ({interval_count} intervals)")
+
     def on_transcribe(self, segment_count: int) -> None:
         console.print(f"  ✓ transcribe             ({segment_count} segments)")
 
     def on_write_transcript(self, path: Path) -> None:
         console.print()
-        console.print("  · detect speech          [dim]n/a (v0.2)[/dim]")
         console.print("  · identify speakers      [dim]n/a (v0.2)[/dim]")
         console.print("  · analyze learner speech [dim]n/a (v0.2)[/dim]")
         console.print()
@@ -128,6 +131,9 @@ def analyze(
     try:
         run_pipeline(request, progress=CliProgress())
     except AudioPreparationError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+    except VadError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
     except AsrError as exc:

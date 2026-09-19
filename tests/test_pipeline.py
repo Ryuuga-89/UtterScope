@@ -8,6 +8,7 @@ from utterscope.audio import PREPARED_FILENAME, PreparedAudio
 from utterscope.models import AnalyzeRequest, Segment, Transcript
 from utterscope.pipeline import TRANSCRIPT_FILENAME, run
 from utterscope.pipeline.analyze import WORK_DIRNAME
+from utterscope.vad import SpeechInterval, VadResult
 
 
 class FakeAsrBackend:
@@ -20,6 +21,14 @@ class FakeAsrBackend:
         )
 
 
+class FakeVadBackend:
+    def detect(self, audio: PreparedAudio) -> VadResult:
+        assert audio.path.is_file()
+        return VadResult(
+            intervals=[SpeechInterval(start=0.1, end=0.9)],
+        )
+
+
 class RecordingProgress:
     def __init__(self) -> None:
         self.events: list[str] = []
@@ -27,6 +36,10 @@ class RecordingProgress:
     def on_prepare_audio(self, duration_seconds: float) -> None:
         assert duration_seconds > 0
         self.events.append("prepare_audio")
+
+    def on_detect_speech(self, interval_count: int) -> None:
+        assert interval_count == 1
+        self.events.append("detect_speech")
 
     def on_transcribe(self, segment_count: int) -> None:
         assert segment_count == 1
@@ -51,6 +64,7 @@ def test_run_transcribes_and_writes_json(
             llm=False,
         ),
         asr=FakeAsrBackend(),
+        vad=FakeVadBackend(),
         progress=progress,
     )
 
@@ -63,6 +77,7 @@ def test_run_transcribes_and_writes_json(
     assert result.duration_seconds > 0
     assert progress.events == [
         "prepare_audio",
+        "detect_speech",
         "transcribe",
         "write_transcript",
     ]
