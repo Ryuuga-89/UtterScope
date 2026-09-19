@@ -63,3 +63,11 @@ class AnalyzeResult(BaseModel):
     analysis_path: Path | None = None
     feedback_document: FeedbackDocument | None = None
     feedback_path: Path | None = None
+    run_dir: Path | None = Field(
+        default=None,
+        description="Directory that holds all artifacts for this run.",
+    )
+    source_audio_path: Path | None = Field(
+        default=None,
+        description="Copied source audio inside the run directory.",
+    )

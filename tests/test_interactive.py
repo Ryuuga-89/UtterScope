@@ -180,6 +180,8 @@ def test_no_args_starts_interactive() -> None:
 
 def test_run_interactive_skips_llm(tmp_path: Path, sample_audio: Path) -> None:
     audio = sample_audio
+    run_dir = tmp_path / "250919-1_test"
+    run_dir.mkdir()
     fake_result = AnalyzeResult(
         document=TranscriptDocument(
             source_audio=audio.name,
@@ -197,9 +199,9 @@ def test_run_interactive_skips_llm(tmp_path: Path, sample_audio: Path) -> None:
                 full_text="Hello",
             ),
         ),
-        transcript_path=tmp_path / "transcript.json",
+        transcript_path=run_dir / "transcript.json",
         learner_speaker="SPEAKER_01",
-        analysis_path=tmp_path / "analysis.json",
+        analysis_path=run_dir / "analysis.json",
         analysis_document=AnalysisDocument(
             source_audio=audio.name,
             model="tiny",
@@ -218,7 +220,12 @@ def test_run_interactive_skips_llm(tmp_path: Path, sample_audio: Path) -> None:
                 filler_count=0,
             ),
         ),
+        run_dir=run_dir,
     )
+
+    layout = MagicMock()
+    layout.run_dir = run_dir
+    layout.source_audio = run_dir / audio.name
 
     with (
         patch(
@@ -230,6 +237,14 @@ def test_run_interactive_skips_llm(tmp_path: Path, sample_audio: Path) -> None:
             return_value="tiny",
         ),
         patch(
+            "utterscope.cli.interactive.resolve_output_root",
+            return_value=tmp_path,
+        ),
+        patch(
+            "utterscope.cli.interactive.create_run_layout",
+            return_value=layout,
+        ),
+        patch(
             "utterscope.cli.interactive.run_pipeline",
             return_value=fake_result,
         ) as pipeline,
@@ -238,10 +253,11 @@ def test_run_interactive_skips_llm(tmp_path: Path, sample_audio: Path) -> None:
             return_value=InteractiveLlmChoice(enabled=False),
         ),
     ):
-        result = run_interactive(output_dir=tmp_path)
+        result = run_interactive(output_root=tmp_path)
 
     assert result.feedback_path is None
     pipeline.assert_called_once()
     request = pipeline.call_args.args[0]
     assert request.llm is False
     assert request.model == "tiny"
+    assert request.output_dir == run_dir

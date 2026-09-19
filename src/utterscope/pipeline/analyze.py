@@ -201,4 +201,10 @@ def run(
         analysis_path=analysis_path,
         feedback_document=feedback_document,
         feedback_path=feedback_path,
+        run_dir=request.output_dir,
+        source_audio_path=(
+            request.output_dir / request.audio_path.name
+            if (request.output_dir / request.audio_path.name).is_file()
+            else None
+        ),
     )

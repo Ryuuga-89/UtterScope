@@ -124,6 +124,21 @@ def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
     assert "Metrics →" in result.output
 
 
+def test_analyze_requires_learner(sample_audio: Path, tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            str(sample_audio),
+            "--no-llm",
+            "--output",
+            str(tmp_path / "out"),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "--learner" in result.output
+
+
 def test_analyze_rejects_llm_without_gemini_key(
     sample_audio: Path, tmp_path: Path, monkeypatch
 ) -> None:
@@ -154,6 +169,8 @@ def test_analyze_rejects_non_positive_long_pause_threshold(
             "analyze",
             str(sample_audio),
             "--no-llm",
+            "--learner",
+            "SPEAKER_01",
             "--long-pause-threshold",
             "0",
             "--output",
@@ -170,7 +187,15 @@ def test_analyze_invalid_audio_fails(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["analyze", str(audio), "--no-llm", "--output", str(tmp_path / "out")],
+        [
+            "analyze",
+            str(audio),
+            "--no-llm",
+            "--learner",
+            "SPEAKER_01",
+            "--output",
+            str(tmp_path / "out"),
+        ],
     )
 
     assert result.exit_code != 0

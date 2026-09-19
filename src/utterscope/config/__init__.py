@@ -1,25 +1,35 @@
 """Configuration helpers for the CLI and local setup."""
 
 from utterscope.config.env import (
+    DEFAULT_OUTPUT_ROOT_NAME,
     GEMINI_API_KEY,
     HF_TOKEN_KEY,
     LONG_PAUSE_THRESHOLD_KEY,
+    OUTPUT_ASK_KEY,
+    OUTPUT_ROOT_KEY,
+    is_output_ask_enabled,
     load_project_env,
     mask_secret,
     project_env_path,
     read_env_value,
     resolve_long_pause_threshold,
+    resolve_output_root,
     upsert_env_value,
 )
 
 __all__ = [
+    "DEFAULT_OUTPUT_ROOT_NAME",
     "GEMINI_API_KEY",
     "HF_TOKEN_KEY",
     "LONG_PAUSE_THRESHOLD_KEY",
+    "OUTPUT_ASK_KEY",
+    "OUTPUT_ROOT_KEY",
+    "is_output_ask_enabled",
     "load_project_env",
     "mask_secret",
     "project_env_path",
     "read_env_value",
     "resolve_long_pause_threshold",
+    "resolve_output_root",
     "upsert_env_value",
 ]

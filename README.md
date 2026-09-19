@@ -98,18 +98,16 @@ The core transcription and quantitative analysis remain usable without an LLM.
 
 ### Reports
 
-Analysis results can be exported as structured data and human-readable reports.
+Analysis results for each run are stored together in one directory (JSON today; HTML reports planned):
 
 ```text
-lesson.mp3
-    │
-    ▼
-UtterScope
-    │
+results/
+└── 250919-1_lesson/
+    ├── lesson.mp3          # copy of the input audio
     ├── transcript.json
     ├── analysis.json
-    ├── feedback.json   # optional (--llm)
-    └── report.html
+    ├── feedback.json       # optional (--llm)
+    └── report.html         # planned
 ```
 
 ## How it works
@@ -189,7 +187,7 @@ Or analyze a recorded lesson with flags. When multiple speakers are detected, pi
 utterscope analyze lesson.mp3
 ```
 
-Skip interactive selection by passing a speaker id:
+Skip interactive selection by passing a speaker id (required for non-interactive `analyze`):
 
 ```bash
 utterscope analyze lesson.mp3 --learner SPEAKER_01
@@ -215,20 +213,26 @@ Run without LLM-based analysis:
 utterscope analyze lesson.mp3 --no-llm
 ```
 
-Export structured results:
+Export structured results. `--output` sets the **root**; each run creates a
+timestamped folder `YYMMDD-n_<audio-stem>/` inside it (default root: `./results`):
 
 ```bash
-utterscope analyze lesson.mp3 --output ./results
+utterscope analyze lesson.mp3 --learner SPEAKER_01 --output ./results
 ```
 
 Outputs:
 
 ```text
 ./results/
-├── transcript.json   # diarized transcript
-├── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
-└── feedback.json     # optional LLM feedback (--llm)
+└── 250919-1_lesson/
+    ├── lesson.mp3
+    ├── transcript.json   # diarized transcript
+    ├── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
+    └── feedback.json     # optional LLM feedback (--llm)
 ```
+
+Configure a fixed absolute output root or “ask every time” (interactive only)
+with `utterscope setup`.
 
 ## Architecture
 

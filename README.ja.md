@@ -102,18 +102,16 @@ UtterScopeは文字起こし結果と音声から、決定論的に計算でき�
 
 ### レポート
 
-解析結果は、機械処理しやすい構造化データと、人間が読みやすいレポートの両方として出力できます。
+各回の解析結果は、1つのランディレクトリにまとめて保存します（現状は JSON。HTML レポートは予定）:
 
-```text id="6gox64"
-lesson.mp3
-    │
-    ▼
-UtterScope
-    │
+```text
+results/
+└── 250919-1_lesson/
+    ├── lesson.mp3          # 入力音声のコピー
     ├── transcript.json
     ├── analysis.json
-    ├── feedback.json   # optional (--llm)
-    └── report.html
+    ├── feedback.json       # 任意 (--llm)
+    └── report.html         # 予定
 ```
 
 ## 仕組み
@@ -193,7 +191,7 @@ utterscope
 utterscope analyze lesson.mp3
 ```
 
-学習者をあらかじめ指定して対話選択をスキップします。
+学習者をあらかじめ指定します（非対話の `analyze` では必須）:
 
 ```bash
 utterscope analyze lesson.mp3 --learner SPEAKER_01
@@ -219,20 +217,25 @@ LLMによる分析を使用せずに実行します。
 utterscope analyze lesson.mp3 --no-llm
 ```
 
-解析結果の出力先を指定します。
+解析結果の出力ルートを指定します。`--output` はルートで、その中に
+`YYMMDD-n_<音声stem>/` のランディレクトリが作られます（既定ルート: `./results`）:
 
 ```bash id="eqt32b"
-utterscope analyze lesson.mp3 --output ./results
+utterscope analyze lesson.mp3 --learner SPEAKER_01 --output ./results
 ```
 
 出力例:
 
 ```text
 ./results/
-├── transcript.json   # 話者付き文字起こし
-├── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
-└── feedback.json     # 任意の LLM フィードバック（--llm）
+└── 250919-1_lesson/
+    ├── lesson.mp3
+    ├── transcript.json   # 話者付き文字起こし
+    ├── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
+    └── feedback.json     # 任意の LLM フィードバック（--llm）
 ```
+
+絶対パスの出力ルートや「毎回尋ねる」（対話のみ）は `utterscope setup` で設定できます。
 
 ## アーキテクチャ
 

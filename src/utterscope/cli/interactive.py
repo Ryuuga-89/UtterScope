@@ -22,6 +22,7 @@ from utterscope.config import (
     GEMINI_API_KEY,
     read_env_value,
     resolve_long_pause_threshold,
+    resolve_output_root,
 )
 from utterscope.llm import LlmError, generate_feedback_document
 from utterscope.llm.catalog import (
@@ -34,6 +35,7 @@ from utterscope.models import (
     AnalyzeRequest,
     AnalyzeResult,
 )
+from utterscope.output import create_run_layout
 from utterscope.pipeline import FEEDBACK_FILENAME
 from utterscope.pipeline import run as run_pipeline
 from utterscope.pipeline.analyze import PipelineProgress
@@ -192,21 +194,57 @@ def prompt_llm_choice() -> InteractiveLlmChoice:
     )
 
 
+def prompt_output_root_absolute() -> str:
+    """Ask for an absolute output root path (interactive ask mode)."""
+    console.print()
+    console.print(
+        "[bold]Output root[/bold]\n"
+        "[dim]Directory that will contain timestamped run folders.[/dim]"
+    )
+    while True:
+        raw = (
+            Prompt.ask(
+                "[bold cyan]❯[/bold cyan] Absolute output root",
+                console=console,
+            )
+            .strip()
+            .strip("'\"")
+        )
+        if not raw:
+            console.print("  [red]✖[/red] Path is required.")
+            continue
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            console.print(
+                "  [red]✖[/red] Use an absolute path (starts with [bold]/[/bold])."
+            )
+            continue
+        console.print(f"  [green]✔[/green] [bold]{path.resolve()}[/bold]")
+        return str(path.resolve())
+
+
 def run_interactive(
     *,
     verbose: bool = False,
-    output_dir: Path | None = None,
+    output_root: Path | None = None,
 ) -> AnalyzeResult:
     """Run the guided analyze flow and return the final result."""
     audio = prompt_audio_path()
     asr_model = prompt_asr_model()
     threshold = resolve_long_pause_threshold(None)
-    destination = (output_dir or Path.cwd()).resolve()
+    root = resolve_output_root(
+        output_root,
+        interactive=True,
+        prompt_absolute_path=prompt_output_root_absolute,
+    )
+    layout = create_run_layout(root, audio)
 
     console.print()
     console.print(
         Panel.fit(
-            f"[bold]{audio}[/bold]\n[dim]ASR: {asr_model}[/dim]",
+            f"[bold]{audio}[/bold]\n"
+            f"[dim]ASR: {asr_model}[/dim]\n"
+            f"[dim]Run: {layout.run_dir}[/dim]",
             title="UtterScope",
             border_style="cyan",
         )
@@ -215,7 +253,7 @@ def run_interactive(
     request = AnalyzeRequest(
         audio_path=audio,
         model=asr_model,
-        output_dir=destination,
+        output_dir=layout.run_dir,
         llm=False,
         long_pause_threshold_seconds=threshold,
     )

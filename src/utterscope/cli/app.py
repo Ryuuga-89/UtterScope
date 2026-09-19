@@ -14,7 +14,6 @@ from utterscope.asr.models import DEFAULT_ASR_MODEL
 from utterscope.audio import AudioPreparationError
 from utterscope.cli.console import console
 from utterscope.cli.interactive import run_interactive
-from utterscope.cli.learner import InteractiveLearnerSelector
 from utterscope.cli.progress import CliProgress
 from utterscope.cli.setup_cmd import run_setup
 from utterscope.config import (
@@ -22,10 +21,12 @@ from utterscope.config import (
     load_project_env,
     read_env_value,
     resolve_long_pause_threshold,
+    resolve_output_root,
 )
 from utterscope.diarization import DiarizationError, FixedLearnerSelector
 from utterscope.llm import LlmError
 from utterscope.models import AnalyzeRequest, AnalyzeResult
+from utterscope.output import create_run_layout
 from utterscope.pipeline import run as run_pipeline
 from utterscope.runtime import enable_quiet_mode
 from utterscope.vad import VadError
@@ -100,6 +101,9 @@ def main(
     except _PIPELINE_ERRORS as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
     except OSError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_USER_ERROR) from exc
@@ -142,7 +146,7 @@ def analyze(
         str | None,
         typer.Option(
             "--learner",
-            help="Learner speaker id (skips interactive selection).",
+            help="Learner speaker id (required in non-interactive mode).",
         ),
     ] = None,
     long_pause_threshold: Annotated[
@@ -157,12 +161,27 @@ def analyze(
     ] = None,
     output: Annotated[
         Path | None,
-        typer.Option("--output", "-o", help="Directory for analysis outputs."),
+        typer.Option(
+            "--output",
+            "-o",
+            help=(
+                "Output root directory. A timestamped run folder is created "
+                "inside (default: ./results)."
+            ),
+        ),
     ] = None,
 ) -> None:
     """Analyze a recorded lesson or conversation (non-interactive flags)."""
+    if learner is None:
+        console.print(
+            "[red]Error:[/red] --learner is required in non-interactive mode. "
+            "Use `utterscope` for guided selection, or pass --learner SPEAKER_00."
+        )
+        raise typer.Exit(EXIT_USER_ERROR)
+
     try:
         threshold = resolve_long_pause_threshold(long_pause_threshold)
+        output_root = resolve_output_root(output, interactive=False)
     except ValueError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_USER_ERROR) from exc
@@ -175,11 +194,16 @@ def analyze(
         )
         raise typer.Exit(EXIT_USER_ERROR)
 
-    output_dir = (output or Path.cwd()).resolve()
+    try:
+        layout = create_run_layout(output_root, audio)
+    except OSError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
+
     request = AnalyzeRequest(
         audio_path=audio,
         model=model,
-        output_dir=output_dir,
+        output_dir=layout.run_dir,
         llm=llm,
         learner_speaker=learner,
         long_pause_threshold_seconds=threshold,
@@ -188,23 +212,18 @@ def analyze(
 
     console.print(
         Panel.fit(
-            f"[bold]{audio.name}[/bold]",
+            f"[bold]{audio.name}[/bold]\n[dim]Run: {layout.run_dir}[/dim]",
             title="UtterScope",
             border_style="cyan",
         )
     )
 
-    selector = (
-        FixedLearnerSelector(learner)
-        if learner is not None
-        else InteractiveLearnerSelector()
-    )
     progress = CliProgress()
     try:
         result = run_pipeline(
             request,
             progress=progress,
-            learner_selector=selector,
+            learner_selector=FixedLearnerSelector(learner),
             quiet=not verbose,
         )
     except (typer.Abort, KeyboardInterrupt) as exc:
@@ -229,6 +248,10 @@ def analyze(
 
 def _print_result(result: AnalyzeResult) -> None:
     console.print()
+    if result.run_dir is not None:
+        console.print(f"Run → {result.run_dir}")
+    if result.source_audio_path is not None:
+        console.print(f"Audio → {result.source_audio_path}")
     console.print(f"Transcript → {result.transcript_path}")
     if result.analysis_path is not None:
         console.print(f"Analysis → {result.analysis_path}")

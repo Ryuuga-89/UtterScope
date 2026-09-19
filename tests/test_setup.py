@@ -19,7 +19,7 @@ def test_setup_saves_token_and_threshold(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv(GEMINI_API_KEY, raising=False)
     monkeypatch.delenv(LONG_PAUSE_THRESHOLD_KEY, raising=False)
     # Menu: token → gemini → threshold → done
-    choices = iter([0, 1, 2, 3])
+    choices = iter([0, 1, 2, 4])
     prompts = iter(["hf_test_token", "gemini_test_key", "1.5"])
 
     with (
@@ -38,7 +38,7 @@ def test_setup_saves_token_and_threshold(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_setup_can_finish_without_changes(tmp_path: Path) -> None:
-    with patch("utterscope.cli.setup_cmd.select_radio", return_value=3):
+    with patch("utterscope.cli.setup_cmd.select_radio", return_value=4):
         written = run_setup(project_dir=tmp_path)
     assert written == tmp_path / ".env"
 

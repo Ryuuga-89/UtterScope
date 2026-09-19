@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,9 @@ _ENV_LINE_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 HF_TOKEN_KEY = "HF_TOKEN"
 GEMINI_API_KEY = "GEMINI_API_KEY"
 LONG_PAUSE_THRESHOLD_KEY = "UTTERSCOPE_LONG_PAUSE_THRESHOLD"
+OUTPUT_ROOT_KEY = "UTTERSCOPE_OUTPUT_ROOT"
+OUTPUT_ASK_KEY = "UTTERSCOPE_OUTPUT_ASK"
+DEFAULT_OUTPUT_ROOT_NAME = "results"
 
 
 def project_env_path(project_dir: Path | None = None) -> Path:
@@ -130,3 +134,56 @@ def resolve_long_pause_threshold(
         msg = f"{LONG_PAUSE_THRESHOLD_KEY} must be greater than 0"
         raise ValueError(msg)
     return value
+
+
+def is_output_ask_enabled(project_dir: Path | None = None) -> bool:
+    """Return True when interactive mode should prompt for the output root."""
+    raw = read_env_value(OUTPUT_ASK_KEY, project_dir)
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def resolve_output_root(
+    cli_value: Path | None = None,
+    *,
+    interactive: bool,
+    project_dir: Path | None = None,
+    prompt_absolute_path: Callable[[], str] | None = None,
+) -> Path:
+    """Resolve the analysis output root directory.
+
+    Priority: CLI ``-o`` > ask-every-time (interactive only) > configured
+    absolute ``UTTERSCOPE_OUTPUT_ROOT`` > ``{cwd}/results``.
+    """
+    if cli_value is not None:
+        return cli_value.expanduser().resolve()
+
+    if is_output_ask_enabled(project_dir):
+        if not interactive:
+            msg = (
+                f"{OUTPUT_ASK_KEY} is enabled, so non-interactive analyze "
+                "cannot choose an output root. Pass --output / -o, unset "
+                f"{OUTPUT_ASK_KEY}, or run the interactive CLI."
+            )
+            raise ValueError(msg)
+        if prompt_absolute_path is None:
+            msg = "prompt_absolute_path is required when output ask is enabled"
+            raise ValueError(msg)
+        prompted = prompt_absolute_path()
+        path = Path(prompted).expanduser()
+        if not path.is_absolute():
+            msg = "output root must be an absolute path"
+            raise ValueError(msg)
+        return path.resolve()
+
+    configured = read_env_value(OUTPUT_ROOT_KEY, project_dir)
+    if configured is not None:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            msg = f"{OUTPUT_ROOT_KEY} must be an absolute path; got {configured!r}"
+            raise ValueError(msg)
+        return path.resolve()
+
+    base = project_dir or Path.cwd()
+    return (base / DEFAULT_OUTPUT_ROOT_NAME).resolve()

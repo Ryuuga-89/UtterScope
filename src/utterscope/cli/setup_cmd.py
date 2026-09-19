@@ -9,9 +9,13 @@ import typer
 from utterscope.cli.console import console
 from utterscope.cli.select import RadioOption, select_radio
 from utterscope.config.env import (
+    DEFAULT_OUTPUT_ROOT_NAME,
     GEMINI_API_KEY,
     HF_TOKEN_KEY,
     LONG_PAUSE_THRESHOLD_KEY,
+    OUTPUT_ASK_KEY,
+    OUTPUT_ROOT_KEY,
+    is_output_ask_enabled,
     mask_secret,
     project_env_path,
     read_env_value,
@@ -53,6 +57,10 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
                     detail="seconds; used by analyze metrics",
                 ),
                 RadioOption(
+                    label="Output directory",
+                    detail="analysis result root / ask every time",
+                ),
+                RadioOption(
                     label="Done",
                     detail="finish setup",
                 ),
@@ -65,6 +73,8 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
             _configure_gemini_api_key(directory)
         elif choice == 2:
             _configure_long_pause_threshold(directory)
+        elif choice == 3:
+            _configure_output_directory(directory)
         else:
             console.print("[dim]Setup finished.[/dim]")
             break
@@ -78,6 +88,8 @@ def _print_current_settings(directory: Path) -> None:
     gemini = read_env_value(GEMINI_API_KEY, directory)
     threshold = resolve_long_pause_threshold(project_dir=directory)
     stored = read_env_value(LONG_PAUSE_THRESHOLD_KEY, directory)
+    ask = is_output_ask_enabled(directory)
+    configured_root = read_env_value(OUTPUT_ROOT_KEY, directory)
 
     console.print("[bold]Current settings[/bold]")
     if token:
@@ -92,6 +104,17 @@ def _print_current_settings(directory: Path) -> None:
     console.print(
         f"  Long pause threshold: [cyan]{threshold:g}s[/cyan]  [dim]({source})[/dim]"
     )
+    if ask:
+        console.print(
+            "  Output root: [cyan]ask every time[/cyan]  [dim](interactive only)[/dim]"
+        )
+    elif configured_root:
+        console.print(f"  Output root: [cyan]{configured_root}[/cyan]")
+    else:
+        console.print(
+            f"  Output root: [cyan]./{DEFAULT_OUTPUT_ROOT_NAME}[/cyan]  "
+            "[dim](default)[/dim]"
+        )
     console.print()
 
 
@@ -180,9 +203,70 @@ def _configure_long_pause_threshold(directory: Path) -> None:
         console.print("[red]Threshold must be greater than 0.[/red]")
         return
 
-    # Normalize display (avoid 1.5000 noise) while keeping precision in file.
     stored = f"{value:g}"
     written = upsert_env_value(LONG_PAUSE_THRESHOLD_KEY, stored, directory)
     console.print(
         f"[green]✔[/green] Saved {LONG_PAUSE_THRESHOLD_KEY}={stored} to {written}"
+    )
+
+
+def _configure_output_directory(directory: Path) -> None:
+    console.print(
+        "Each analyze run creates a folder under the output root:\n"
+        "  YYMMDD-n_<audio-stem>/ with JSON artifacts and a copy of the audio."
+    )
+    console.print(
+        f"Default root is [cyan]./{DEFAULT_OUTPUT_ROOT_NAME}[/cyan] "
+        "under the current working directory."
+    )
+    console.print(
+        "[dim]Ask every time applies to interactive mode only; "
+        "non-interactive analyze requires -o or a fixed root.[/dim]"
+    )
+    console.print()
+
+    choice = select_radio(
+        title="Output directory setting",
+        options=[
+            RadioOption(
+                label="Use default",
+                detail=f"./{DEFAULT_OUTPUT_ROOT_NAME} under cwd",
+            ),
+            RadioOption(
+                label="Set absolute path",
+                detail="save UTTERSCOPE_OUTPUT_ROOT",
+            ),
+            RadioOption(
+                label="Ask every time",
+                detail="interactive mode only",
+            ),
+        ],
+    )
+    if choice == 0:
+        upsert_env_value(OUTPUT_ASK_KEY, "0", directory)
+        env_path = upsert_env_value(OUTPUT_ROOT_KEY, "", directory)
+        console.print(
+            f"[green]✔[/green] Using default [cyan]./{DEFAULT_OUTPUT_ROOT_NAME}"
+            f"[/cyan] ({env_path})"
+        )
+        return
+
+    if choice == 2:
+        written = upsert_env_value(OUTPUT_ASK_KEY, "1", directory)
+        console.print(
+            f"[green]✔[/green] Saved {OUTPUT_ASK_KEY}=1 to {written} (interactive only)"
+        )
+        return
+
+    current = read_env_value(OUTPUT_ROOT_KEY, directory)
+    default = current or str(Path.cwd() / DEFAULT_OUTPUT_ROOT_NAME)
+    raw = typer.prompt("Absolute output root", default=default).strip()
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        console.print("[red]Path must be absolute. Nothing was saved.[/red]")
+        return
+    upsert_env_value(OUTPUT_ASK_KEY, "0", directory)
+    written = upsert_env_value(OUTPUT_ROOT_KEY, str(path.resolve()), directory)
+    console.print(
+        f"[green]✔[/green] Saved {OUTPUT_ROOT_KEY}={path.resolve()} to {written}"
     )

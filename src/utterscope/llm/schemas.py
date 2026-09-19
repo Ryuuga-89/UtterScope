@@ -55,8 +55,7 @@ class PassBIssue(BaseModel):
     suggestion: str | None = Field(
         default=None,
         description=(
-            "Improved English alternative when helpful "
-            "(may keep English wording)."
+            "Improved English alternative when helpful (may keep English wording)."
         ),
     )
 
