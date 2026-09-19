@@ -190,9 +190,7 @@ def _menu_lines(
             head += f"  ({option.detail})"
         lines.append(f"{style}{_truncate(head, width)}{ANSI_RESET}")
         for sample in option.samples:
-            lines.append(
-                f"{style}{_truncate(f'      {sample}', width)}{ANSI_RESET}"
-            )
+            lines.append(f"{style}{_truncate(f'      {sample}', width)}{ANSI_RESET}")
         lines.append("")
     lines.append(f"{ANSI_DIM}  ↑/↓ 移動  ·  Enter 決定{ANSI_RESET}")
     return lines

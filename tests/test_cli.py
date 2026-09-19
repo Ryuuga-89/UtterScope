@@ -28,9 +28,7 @@ def test_version() -> None:
     assert __version__ in result.stdout
 
 
-def test_analyze_reports_progress(
-    sample_audio: Path, tmp_path: Path
-) -> None:
+def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
     output_dir = tmp_path / "out"
     fake_result = AnalyzeResult(
         document=TranscriptDocument(
@@ -124,6 +122,27 @@ def test_analyze_reports_progress(
     assert "Transcript →" in result.output
     assert "Analysis →" in result.output
     assert "Metrics →" in result.output
+
+
+def test_analyze_rejects_llm_without_gemini_key(
+    sample_audio: Path, tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with patch("utterscope.cli.app.read_env_value", return_value=None):
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                str(sample_audio),
+                "--llm",
+                "--learner",
+                "SPEAKER_01",
+                "--output",
+                str(tmp_path / "out"),
+            ],
+        )
+    assert result.exit_code != 0
+    assert "GEMINI_API_KEY" in result.output
 
 
 def test_analyze_rejects_non_positive_long_pause_threshold(

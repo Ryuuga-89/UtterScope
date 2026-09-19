@@ -15,9 +15,7 @@ from utterscope.audio import (
 )
 
 
-def test_prepare_audio_converts_to_16k_mono(
-    sample_audio: Path, tmp_path: Path
-) -> None:
+def test_prepare_audio_converts_to_16k_mono(sample_audio: Path, tmp_path: Path) -> None:
     work_dir = tmp_path / "work"
     prepared = prepare_audio(sample_audio, work_dir)
 

@@ -66,9 +66,7 @@ class PyannoteDiarizationBackend:
         if self._pipeline is not None:
             return self._pipeline
 
-        token = os.environ.get("HF_TOKEN") or os.environ.get(
-            "HUGGINGFACE_HUB_TOKEN"
-        )
+        token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
         if not token:
             pages = " and ".join(REQUIRED_MODEL_PAGES)
             msg = (
@@ -128,9 +126,7 @@ def _as_annotation(output: object):
     if hasattr(output, "itertracks"):
         return output
     speaker_diarization = getattr(output, "speaker_diarization", None)
-    if speaker_diarization is not None and hasattr(
-        speaker_diarization, "itertracks"
-    ):
+    if speaker_diarization is not None and hasattr(speaker_diarization, "itertracks"):
         return speaker_diarization
     msg = "pyannote returned an unexpected diarization output type"
     raise DiarizationError(msg)

@@ -16,9 +16,7 @@ def test_speech_interval_rejects_inverted_range() -> None:
         SpeechInterval(start=2.0, end=1.0)
 
 
-def test_silero_vad_maps_timestamps(
-    sample_audio: Path, tmp_path: Path
-) -> None:
+def test_silero_vad_maps_timestamps(sample_audio: Path, tmp_path: Path) -> None:
     prepared = prepare_audio(sample_audio, tmp_path / "work")
     fake_timestamps = [{"start": 0.1, "end": 0.8}]
 
@@ -36,9 +34,7 @@ def test_silero_vad_maps_timestamps(
     )
 
 
-def test_silero_vad_runs_on_prepared_audio(
-    sample_audio: Path, tmp_path: Path
-) -> None:
+def test_silero_vad_runs_on_prepared_audio(sample_audio: Path, tmp_path: Path) -> None:
     prepared = prepare_audio(sample_audio, tmp_path / "work")
     result = SileroVadBackend().detect(prepared)
 

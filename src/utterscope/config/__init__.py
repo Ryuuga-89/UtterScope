@@ -1,6 +1,7 @@
 """Configuration helpers for the CLI and local setup."""
 
 from utterscope.config.env import (
+    GEMINI_API_KEY,
     HF_TOKEN_KEY,
     LONG_PAUSE_THRESHOLD_KEY,
     load_project_env,
@@ -12,6 +13,7 @@ from utterscope.config.env import (
 )
 
 __all__ = [
+    "GEMINI_API_KEY",
     "HF_TOKEN_KEY",
     "LONG_PAUSE_THRESHOLD_KEY",
     "load_project_env",

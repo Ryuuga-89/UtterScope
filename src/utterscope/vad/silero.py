@@ -23,8 +23,7 @@ class SileroVadBackend:
             from silero_vad import get_speech_timestamps, load_silero_vad
         except ImportError as exc:
             msg = (
-                "silero-vad is not installed; "
-                "run `uv sync` to enable speech detection"
+                "silero-vad is not installed; run `uv sync` to enable speech detection"
             )
             raise VadError(msg) from exc
 

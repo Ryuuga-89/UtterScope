@@ -15,8 +15,14 @@ from utterscope.cli.console import console
 from utterscope.cli.learner import InteractiveLearnerSelector
 from utterscope.cli.progress import CliProgress
 from utterscope.cli.setup_cmd import run_setup
-from utterscope.config import load_project_env, resolve_long_pause_threshold
+from utterscope.config import (
+    GEMINI_API_KEY,
+    load_project_env,
+    read_env_value,
+    resolve_long_pause_threshold,
+)
 from utterscope.diarization import DiarizationError, FixedLearnerSelector
+from utterscope.llm import LlmError
 from utterscope.models import AnalyzeRequest
 from utterscope.pipeline import run as run_pipeline
 from utterscope.runtime import enable_quiet_mode
@@ -39,6 +45,7 @@ _PIPELINE_ERRORS = (
     VadError,
     DiarizationError,
     AsrError,
+    LlmError,
 )
 
 
@@ -134,6 +141,14 @@ def analyze(
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_USER_ERROR) from exc
 
+    if llm and not read_env_value(GEMINI_API_KEY):
+        console.print(
+            f"[red]Error:[/red] {GEMINI_API_KEY} is not set. "
+            "Run `utterscope setup` or export the key, "
+            "or pass --no-llm to skip feedback."
+        )
+        raise typer.Exit(EXIT_USER_ERROR)
+
     output_dir = (output or Path.cwd()).resolve()
     request = AnalyzeRequest(
         audio_path=audio,
@@ -152,10 +167,6 @@ def analyze(
             border_style="cyan",
         )
     )
-    if request.llm:
-        console.print(
-            "[dim]Note: --llm is accepted but ignored until LLM analysis lands.[/dim]"
-        )
 
     selector = (
         FixedLearnerSelector(learner)
@@ -191,6 +202,8 @@ def analyze(
     console.print(f"Transcript → {result.transcript_path}")
     if result.analysis_path is not None:
         console.print(f"Analysis → {result.analysis_path}")
+    if result.feedback_path is not None:
+        console.print(f"Feedback → {result.feedback_path}")
     if result.learner_speaker is not None:
         console.print(f"Learner → {result.learner_speaker}")
     if result.analysis_document is not None:
@@ -200,4 +213,10 @@ def analyze(
             f"{metrics.speaking_ratio:.0%} ratio, "
             f"{metrics.wpm:.0f} WPM, "
             f"{metrics.filler_count} fillers"
+        )
+    if result.feedback_document is not None:
+        feedback = result.feedback_document
+        console.print(
+            f"LLM → {len(feedback.issues)} issues, "
+            f"{len(feedback.recurring_patterns)} patterns"
         )

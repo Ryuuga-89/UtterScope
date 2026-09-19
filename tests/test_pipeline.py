@@ -6,6 +6,7 @@ from pathlib import Path
 
 from utterscope.audio import PREPARED_FILENAME, PreparedAudio
 from utterscope.diarization import DiarizationResult, SpeakerTurn
+from utterscope.llm.schemas import PassAResult, PassBIssue, PassBResult
 from utterscope.models import AnalyzeRequest, Segment, Transcript
 from utterscope.pipeline import TRANSCRIPT_FILENAME, run
 from utterscope.pipeline.analyze import WORK_DIRNAME
@@ -55,13 +56,33 @@ class RecordingProgress:
     def begin(self, step: str) -> None:
         self.events.append(f"begin:{step}")
 
+    def update(self, step: str) -> None:
+        self.events.append(f"update:{step}")
+
     def end(self, step: str, detail: str = "") -> None:
         self.events.append(f"end:{step}:{detail}")
 
 
-def test_run_assigns_speakers_and_learner(
-    sample_audio: Path, tmp_path: Path
-) -> None:
+class FakeFeedbackBackend:
+    def run_pass_a(self, turns, *, learner_speaker: str, model: str):
+        return PassAResult(
+            summary="Solid lesson overall.",
+            recurring_patterns=[],
+        )
+
+    def run_pass_b(self, *, target, window, learner_speaker: str, model: str):
+        return PassBResult(
+            issues=[
+                PassBIssue(
+                    category="grammar",
+                    excerpt=target.text,
+                    message="Minor grammar note.",
+                )
+            ]
+        )
+
+
+def test_run_assigns_speakers_and_learner(sample_audio: Path, tmp_path: Path) -> None:
     output_dir = tmp_path / "results"
     progress = RecordingProgress()
 
@@ -91,6 +112,7 @@ def test_run_assigns_speakers_and_learner(
     assert result.analysis_document is not None
     assert result.analysis_document.learner_speaker == "SPEAKER_01"
     assert result.analysis_document.metrics.turn_count == 1
+    assert result.feedback_path is None
     assert progress.events == [
         "begin:prepare audio",
         "end:prepare audio:1.0s",
@@ -105,3 +127,35 @@ def test_run_assigns_speakers_and_learner(
         "begin:write results",
         "end:write results:",
     ]
+
+
+def test_run_writes_feedback_when_llm_enabled(
+    sample_audio: Path, tmp_path: Path
+) -> None:
+    output_dir = tmp_path / "results"
+    progress = RecordingProgress()
+
+    result = run(
+        AnalyzeRequest(
+            audio_path=sample_audio,
+            model="tiny",
+            output_dir=output_dir,
+            llm=True,
+            learner_speaker="SPEAKER_01",
+        ),
+        asr=FakeAsrBackend(),
+        vad=FakeVadBackend(),
+        diarization=FakeDiarizationBackend(),
+        feedback_backend=FakeFeedbackBackend(),
+        progress=progress,
+    )
+
+    assert result.feedback_path == output_dir / "feedback.json"
+    assert result.feedback_path is not None
+    assert result.feedback_path.is_file()
+    assert result.feedback_document is not None
+    assert result.feedback_document.summary == "Solid lesson overall."
+    assert len(result.feedback_document.issues) == 1
+    assert "begin:generate feedback" in progress.events
+    assert any(event.startswith("update:pass") for event in progress.events)
+    assert "end:generate feedback:1 issues" in progress.events

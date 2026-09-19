@@ -18,9 +18,7 @@ from utterscope.config import (
 from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
 
 
-def test_load_project_env_sets_missing_values(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_load_project_env_sets_missing_values(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("UTTERSCOPE_TEST_TOKEN", raising=False)
     env_file = tmp_path / ".env"
     env_file.write_text("UTTERSCOPE_TEST_TOKEN=from-dotenv\n", encoding="utf-8")
@@ -49,9 +47,7 @@ def test_load_project_env_missing_file(tmp_path: Path) -> None:
     assert load_project_env(tmp_path) is None
 
 
-def test_upsert_env_value_creates_and_updates(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_upsert_env_value_creates_and_updates(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("HF_TOKEN", raising=False)
     path = upsert_env_value("HF_TOKEN", "token-one", tmp_path)
     assert path.read_text(encoding="utf-8") == "HF_TOKEN=token-one\n"
@@ -78,9 +74,7 @@ def test_read_env_value_and_mask(tmp_path: Path, monkeypatch) -> None:
     assert "*" in mask_secret("abcdefghij")
 
 
-def test_resolve_long_pause_threshold_priority(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_resolve_long_pause_threshold_priority(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv(LONG_PAUSE_THRESHOLD_KEY, raising=False)
     assert (
         resolve_long_pause_threshold(project_dir=tmp_path)

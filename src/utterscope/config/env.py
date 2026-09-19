@@ -13,6 +13,7 @@ from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
 _ENV_LINE_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 
 HF_TOKEN_KEY = "HF_TOKEN"
+GEMINI_API_KEY = "GEMINI_API_KEY"
 LONG_PAUSE_THRESHOLD_KEY = "UTTERSCOPE_LONG_PAUSE_THRESHOLD"
 
 
@@ -123,10 +124,7 @@ def resolve_long_pause_threshold(
     try:
         value = float(raw)
     except ValueError as exc:
-        msg = (
-            f"invalid {LONG_PAUSE_THRESHOLD_KEY}={raw!r}; "
-            "expected a positive number"
-        )
+        msg = f"invalid {LONG_PAUSE_THRESHOLD_KEY}={raw!r}; expected a positive number"
         raise ValueError(msg) from exc
     if value <= 0:
         msg = f"{LONG_PAUSE_THRESHOLD_KEY} must be greater than 0"

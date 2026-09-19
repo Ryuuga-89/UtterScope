@@ -41,9 +41,7 @@ def compute_speaking_metrics(
 
     speaking_time = sum(turn.duration for turn in learner_turns)
     total_speaking = sum(turn.duration for turn in turns)
-    speaking_ratio = (
-        speaking_time / total_speaking if total_speaking > 0 else 0.0
-    )
+    speaking_ratio = speaking_time / total_speaking if total_speaking > 0 else 0.0
 
     learner_text = " ".join(turn.text for turn in learner_turns)
     word_count = len(tokenize_words(learner_text))
@@ -112,10 +110,7 @@ def _build_turns(segments: list[Segment]) -> list[_Turn]:
         if turns:
             previous = turns[-1]
             gap = segment.start - previous.end
-            if (
-                previous.speaker_id == speaker_id
-                and gap <= _TURN_GAP_SECONDS
-            ):
+            if previous.speaker_id == speaker_id and gap <= _TURN_GAP_SECONDS:
                 merged_text = (
                     f"{previous.text} {text}".strip() if text else previous.text
                 )

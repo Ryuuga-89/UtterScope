@@ -9,6 +9,7 @@ import typer
 from utterscope.cli.console import console
 from utterscope.cli.select import RadioOption, select_radio
 from utterscope.config.env import (
+    GEMINI_API_KEY,
     HF_TOKEN_KEY,
     LONG_PAUSE_THRESHOLD_KEY,
     mask_secret,
@@ -20,9 +21,8 @@ from utterscope.config.env import (
 from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
 
 HF_TOKEN_HELP_URL = "https://huggingface.co/settings/tokens"
-HF_MODEL_URL = (
-    "https://huggingface.co/pyannote/speaker-diarization-community-1"
-)
+HF_MODEL_URL = "https://huggingface.co/pyannote/speaker-diarization-community-1"
+GEMINI_KEY_HELP_URL = "https://aistudio.google.com/apikey"
 
 
 def run_setup(*, project_dir: Path | None = None) -> Path:
@@ -45,6 +45,10 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
                     detail="required for speaker diarization",
                 ),
                 RadioOption(
+                    label="Gemini API key",
+                    detail="required for --llm feedback",
+                ),
+                RadioOption(
                     label="Long pause threshold",
                     detail="seconds; used by analyze metrics",
                 ),
@@ -58,6 +62,8 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
         if choice == 0:
             _configure_hf_token(directory)
         elif choice == 1:
+            _configure_gemini_api_key(directory)
+        elif choice == 2:
             _configure_long_pause_threshold(directory)
         else:
             console.print("[dim]Setup finished.[/dim]")
@@ -69,6 +75,7 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
 
 def _print_current_settings(directory: Path) -> None:
     token = read_env_value(HF_TOKEN_KEY, directory)
+    gemini = read_env_value(GEMINI_API_KEY, directory)
     threshold = resolve_long_pause_threshold(project_dir=directory)
     stored = read_env_value(LONG_PAUSE_THRESHOLD_KEY, directory)
 
@@ -77,6 +84,10 @@ def _print_current_settings(directory: Path) -> None:
         console.print(f"  HF_TOKEN: [dim]{mask_secret(token)}[/dim]")
     else:
         console.print("  HF_TOKEN: [dim](not set)[/dim]")
+    if gemini:
+        console.print(f"  GEMINI_API_KEY: [dim]{mask_secret(gemini)}[/dim]")
+    else:
+        console.print("  GEMINI_API_KEY: [dim](not set)[/dim]")
     source = "from .env" if stored is not None else "default"
     console.print(
         f"  Long pause threshold: [cyan]{threshold:g}s[/cyan]  [dim]({source})[/dim]"
@@ -85,9 +96,7 @@ def _print_current_settings(directory: Path) -> None:
 
 
 def _configure_hf_token(directory: Path) -> None:
-    console.print(
-        "Speaker diarization needs a Hugging Face token for pyannote models."
-    )
+    console.print("Speaker diarization needs a Hugging Face token for pyannote models.")
     console.print(f"  1. Create a token: {HF_TOKEN_HELP_URL}")
     console.print(f"  2. Accept model terms: {HF_MODEL_URL}")
     console.print()
@@ -117,11 +126,40 @@ def _configure_hf_token(directory: Path) -> None:
     )
 
 
+def _configure_gemini_api_key(directory: Path) -> None:
+    console.print("LLM feedback (--llm) needs a Gemini API key from Google AI Studio.")
+    console.print(f"  Create a key: {GEMINI_KEY_HELP_URL}")
+    console.print()
+
+    current = read_env_value(GEMINI_API_KEY, directory)
+    if current:
+        choice = select_radio(
+            title="GEMINI_API_KEY is already set. Update it?",
+            options=[
+                RadioOption(label="Update key", detail="overwrite .env"),
+                RadioOption(label="Keep current", detail="leave unchanged"),
+            ],
+        )
+        if choice == 1:
+            console.print("[dim]Kept existing GEMINI_API_KEY.[/dim]")
+            return
+
+    key = typer.prompt("GEMINI_API_KEY", hide_input=True).strip()
+    if not key:
+        console.print("[red]Empty key. Nothing was saved.[/red]")
+        return
+
+    written = upsert_env_value(GEMINI_API_KEY, key, directory)
+    console.print(
+        f"[green]✔[/green] Saved {GEMINI_API_KEY} to {written}  "
+        f"[dim]({mask_secret(key)})[/dim]"
+    )
+
+
 def _configure_long_pause_threshold(directory: Path) -> None:
     current = resolve_long_pause_threshold(project_dir=directory)
     console.print(
-        "Pauses at or above this many seconds count as long pauses "
-        "in analysis.json."
+        "Pauses at or above this many seconds count as long pauses in analysis.json."
     )
     console.print(
         f"Default is {DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS:g}s. "
@@ -146,6 +184,5 @@ def _configure_long_pause_threshold(directory: Path) -> None:
     stored = f"{value:g}"
     written = upsert_env_value(LONG_PAUSE_THRESHOLD_KEY, stored, directory)
     console.print(
-        f"[green]✔[/green] Saved {LONG_PAUSE_THRESHOLD_KEY}={stored} "
-        f"to {written}"
+        f"[green]✔[/green] Saved {LONG_PAUSE_THRESHOLD_KEY}={stored} to {written}"
     )

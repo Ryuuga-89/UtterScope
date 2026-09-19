@@ -170,11 +170,13 @@ UtterScopeを実行します。
 uv run utterscope analyze path/to/lesson.mp3
 ```
 
-初回は Hugging Face トークンを対話セットアップできます（話者分離用）。
+初回は対話セットアップでトークンを保存できます（話者分離用の Hugging Face トークン、LLM 用の Gemini API キー）。
 
 ```bash
 uv run utterscope setup
 ```
+
+`GEMINI_API_KEY` が無い場合は `--no-llm` を付けるか、デフォルトの `--llm` 実行時にエラーになります。
 
 ## 使い方
 

@@ -166,11 +166,13 @@ Run UtterScope:
 uv run utterscope analyze path/to/lesson.mp3
 ```
 
-For speaker diarization, run the interactive setup once to save a Hugging Face token:
+For speaker diarization and optional LLM feedback, run the interactive setup once:
 
 ```bash
 uv run utterscope setup
 ```
+
+Setup can save `HF_TOKEN` (pyannote) and `GEMINI_API_KEY` (Gemini feedback). Without a Gemini key, pass `--no-llm` or analysis will exit with an error when `--llm` is on (the default).
 
 ## Usage
 

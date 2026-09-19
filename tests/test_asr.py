@@ -7,8 +7,7 @@ from utterscope.asr import resolve_model_path, transcript_from_whisper_result
 
 def test_resolve_model_path_alias() -> None:
     assert (
-        resolve_model_path("large-v3-turbo")
-        == "mlx-community/whisper-large-v3-turbo"
+        resolve_model_path("large-v3-turbo") == "mlx-community/whisper-large-v3-turbo"
     )
 
 

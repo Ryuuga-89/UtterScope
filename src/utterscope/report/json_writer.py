@@ -4,25 +4,31 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from utterscope.models import AnalysisDocument, TranscriptDocument
+from utterscope.models import (
+    AnalysisDocument,
+    FeedbackDocument,
+    TranscriptDocument,
+)
 
 
-def write_transcript_document(
-    document: TranscriptDocument, path: Path
-) -> Path:
+def write_transcript_document(document: TranscriptDocument, path: Path) -> Path:
     """Serialize ``document`` as JSON and return ``path``."""
     return _write_json(document, path)
 
 
-def write_analysis_document(
-    document: AnalysisDocument, path: Path
-) -> Path:
+def write_analysis_document(document: AnalysisDocument, path: Path) -> Path:
+    """Serialize ``document`` as JSON and return ``path``."""
+    return _write_json(document, path)
+
+
+def write_feedback_document(document: FeedbackDocument, path: Path) -> Path:
     """Serialize ``document`` as JSON and return ``path``."""
     return _write_json(document, path)
 
 
 def _write_json(
-    document: TranscriptDocument | AnalysisDocument, path: Path
+    document: TranscriptDocument | AnalysisDocument | FeedbackDocument,
+    path: Path,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

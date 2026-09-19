@@ -44,9 +44,7 @@ class AnalyzeRequest(BaseModel):
     feedback_context_turns: int = Field(
         default=DEFAULT_FEEDBACK_CONTEXT_TURNS,
         ge=0,
-        description=(
-            "Neighboring turns (±N) passed with each learner turn in Pass B."
-        ),
+        description=("Neighboring turns (±N) passed with each learner turn in Pass B."),
     )
 
 

@@ -2,6 +2,7 @@
 
 from utterscope.pipeline.analyze import (
     ANALYSIS_FILENAME,
+    FEEDBACK_FILENAME,
     TRANSCRIPT_FILENAME,
     PipelineProgress,
     run,
@@ -9,6 +10,7 @@ from utterscope.pipeline.analyze import (
 
 __all__ = [
     "ANALYSIS_FILENAME",
+    "FEEDBACK_FILENAME",
     "TRANSCRIPT_FILENAME",
     "PipelineProgress",
     "run",

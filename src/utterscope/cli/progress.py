@@ -38,6 +38,12 @@ class CliProgress:
             return
         console.print(f"  [cyan]⠋[/cyan] {step}...")
 
+    def update(self, step: str) -> None:
+        """Change the waiting label without finishing the current step."""
+        self._step = step
+        if not spinner_supported():
+            console.print(f"  [cyan]⠋[/cyan] {step}...")
+
     def end(self, step: str, detail: str = "") -> None:
         self._stop_spinner()
         clear_current_line()
@@ -62,8 +68,7 @@ class CliProgress:
         while not self._stop.is_set():
             frame = SPINNER_FRAMES[index % len(SPINNER_FRAMES)]
             out.write(
-                f"\r{ANSI_CLEAR_LINE}  {ANSI_CYAN}{frame}{ANSI_RESET} "
-                f"{self._step}..."
+                f"\r{ANSI_CLEAR_LINE}  {ANSI_CYAN}{frame}{ANSI_RESET} {self._step}..."
             )
             out.flush()
             index += 1
