@@ -51,6 +51,9 @@ class PipelineProgress(Protocol):
     def update(self, step: str) -> None:
         """Update the waiting label for the current step."""
 
+    def cancel(self) -> None:
+        """Stop the current step without a success mark."""
+
 
 def run(
     request: AnalyzeRequest,

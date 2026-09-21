@@ -30,6 +30,7 @@ def test_version() -> None:
 
 def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
     output_dir = tmp_path / "out"
+    output_dir.mkdir()
     fake_result = AnalyzeResult(
         document=TranscriptDocument(
             source_audio=sample_audio.name,
@@ -69,6 +70,7 @@ def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
                 filler_count=0,
             ),
         ),
+        run_dir=output_dir,
     )
 
     def fake_run(
@@ -118,10 +120,76 @@ def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
     assert "prepare audio" in result.output
     assert "✔" in result.output
     assert "analyze learner speech" in result.output
+    assert "record history" in result.output
     assert "Learner → SPEAKER_01" in result.output
     assert "Transcript →" in result.output
     assert "Analysis →" in result.output
     assert "Metrics →" in result.output
+
+
+def test_history_empty(tmp_path: Path, monkeypatch) -> None:
+    from utterscope.config import DB_PATH_KEY
+
+    monkeypatch.setenv(DB_PATH_KEY, str(tmp_path / "empty.sqlite"))
+    result = runner.invoke(app, ["history"])
+    assert result.exit_code == 0
+    assert "履歴はありません" in result.output
+
+
+def test_history_lists_recorded_run(tmp_path: Path, monkeypatch) -> None:
+    from utterscope.config import DB_PATH_KEY
+    from utterscope.storage import record_run
+
+    db_path = tmp_path / "listed.sqlite"
+    monkeypatch.setenv(DB_PATH_KEY, str(db_path))
+    run_dir = tmp_path / "250919-1_lesson"
+    run_dir.mkdir()
+    result_doc = AnalyzeResult(
+        document=TranscriptDocument(
+            source_audio="lesson.mp3",
+            model="tiny",
+            transcript=Transcript(
+                language="en",
+                segments=[
+                    Segment(start=0.0, end=1.0, text="Hi", speaker="SPEAKER_01")
+                ],
+                full_text="Hi",
+            ),
+        ),
+        transcript_path=run_dir / "transcript.json",
+        duration_seconds=1.0,
+        learner_speaker="SPEAKER_01",
+        analysis_document=AnalysisDocument(
+            source_audio="lesson.mp3",
+            model="tiny",
+            learner_speaker="SPEAKER_01",
+            speakers=[SpeakerRole(speaker_id="SPEAKER_01", role="student")],
+            metrics=SpeakingMetrics(
+                speaking_time_seconds=1.0,
+                speaking_ratio=1.0,
+                wpm=72.0,
+                turn_count=1,
+                average_turn_seconds=1.0,
+                pause_count=0,
+                long_pause_count=0,
+                filler_count=2,
+            ),
+        ),
+        analysis_path=run_dir / "analysis.json",
+        run_dir=run_dir,
+    )
+    record_run(result_doc, db_path=db_path)
+
+    result = runner.invoke(app, ["history", "--limit", "5"], env={"COLUMNS": "200"})
+    assert result.exit_code == 0
+    assert "Lesson history" in result.output
+    assert "72" in result.output
+    # Rich may wrap long paths; assert via storage API as well.
+    from utterscope.storage import list_runs
+
+    runs = list_runs(limit=5, db_path=db_path)
+    assert len(runs) == 1
+    assert runs[0].run_name == "250919-1_lesson"
 
 
 def test_analyze_requires_learner(sample_audio: Path, tmp_path: Path) -> None:

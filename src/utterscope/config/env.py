@@ -18,7 +18,10 @@ GEMINI_API_KEY = "GEMINI_API_KEY"
 LONG_PAUSE_THRESHOLD_KEY = "UTTERSCOPE_LONG_PAUSE_THRESHOLD"
 OUTPUT_ROOT_KEY = "UTTERSCOPE_OUTPUT_ROOT"
 OUTPUT_ASK_KEY = "UTTERSCOPE_OUTPUT_ASK"
+DB_PATH_KEY = "UTTERSCOPE_DB_PATH"
 DEFAULT_OUTPUT_ROOT_NAME = "results"
+DEFAULT_DB_DIRNAME = ".utterscope"
+DEFAULT_DB_FILENAME = "history.sqlite"
 
 
 def project_env_path(project_dir: Path | None = None) -> Path:
@@ -187,3 +190,19 @@ def resolve_output_root(
 
     base = project_dir or Path.cwd()
     return (base / DEFAULT_OUTPUT_ROOT_NAME).resolve()
+
+
+def resolve_db_path(project_dir: Path | None = None) -> Path:
+    """Resolve the lesson-history SQLite path.
+
+    Priority: ``UTTERSCOPE_DB_PATH`` (absolute) >
+    ``~/.utterscope/history.sqlite``.
+    """
+    configured = read_env_value(DB_PATH_KEY, project_dir)
+    if configured is not None:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            msg = f"{DB_PATH_KEY} must be an absolute path; got {configured!r}"
+            raise ValueError(msg)
+        return path.resolve()
+    return (Path.home() / DEFAULT_DB_DIRNAME / DEFAULT_DB_FILENAME).resolve()

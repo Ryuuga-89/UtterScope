@@ -220,6 +220,13 @@ LLMによる分析を使用せずに実行します。
 utterscope analyze lesson.mp3 --no-llm
 ```
 
+ローカルの SQLite 履歴索引から最近の分析を一覧します:
+
+```bash
+utterscope history
+utterscope history --limit 50
+```
+
 解析結果の出力ルートを指定します。`--output` はルートで、その中に
 `YYMMDD-n_<音声stem>/` のランディレクトリが作られます（既定ルート: `./results`）:
 
@@ -330,8 +337,8 @@ Webサーバーを起動したりJavaScriptフロントエンドをインスト�
 ### v0.4 — 成長の追跡
 
 * [x] HTMLレポート
-* [ ] レッスン履歴
-* [ ] SQLiteによる保存
+* [x] レッスン履歴
+* [x] SQLiteによる保存
 * [ ] レッスン間比較
 * [ ] 長期的なスピーキング指標
 

@@ -15,6 +15,7 @@ from utterscope.asr.models import (
     list_asr_models,
 )
 from utterscope.cli.console import ANSI_YELLOW, ansi_rgb, console
+from utterscope.cli.history_record import record_history
 from utterscope.cli.learner import InteractiveLearnerSelector
 from utterscope.cli.progress import CliProgress
 from utterscope.cli.select import RadioOption, select_radio
@@ -268,6 +269,7 @@ def run_interactive(
 
         llm_choice = prompt_llm_choice()
         if not llm_choice.enabled:
+            _record_and_return(result, progress)
             return result
 
         assert llm_choice.provider is not None
@@ -283,14 +285,23 @@ def run_interactive(
             )
             raise LlmError(msg)
 
-        return _run_feedback(
+        result = _run_feedback(
             result,
             llm_model=llm_choice.model,
             progress=progress,
         )
+        _record_and_return(result, progress)
+        return result
     except BaseException:
         progress.cancel()
         raise
+
+
+def _record_and_return(
+    result: AnalyzeResult,
+    progress: PipelineProgress | None,
+) -> None:
+    record_history(result, progress=progress)
 
 
 def _run_feedback(

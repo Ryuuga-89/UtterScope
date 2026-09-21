@@ -1,6 +1,9 @@
 """Configuration helpers for the CLI and local setup."""
 
 from utterscope.config.env import (
+    DB_PATH_KEY,
+    DEFAULT_DB_DIRNAME,
+    DEFAULT_DB_FILENAME,
     DEFAULT_OUTPUT_ROOT_NAME,
     GEMINI_API_KEY,
     HF_TOKEN_KEY,
@@ -12,12 +15,16 @@ from utterscope.config.env import (
     mask_secret,
     project_env_path,
     read_env_value,
+    resolve_db_path,
     resolve_long_pause_threshold,
     resolve_output_root,
     upsert_env_value,
 )
 
 __all__ = [
+    "DB_PATH_KEY",
+    "DEFAULT_DB_DIRNAME",
+    "DEFAULT_DB_FILENAME",
     "DEFAULT_OUTPUT_ROOT_NAME",
     "GEMINI_API_KEY",
     "HF_TOKEN_KEY",
@@ -29,6 +36,7 @@ __all__ = [
     "mask_secret",
     "project_env_path",
     "read_env_value",
+    "resolve_db_path",
     "resolve_long_pause_threshold",
     "resolve_output_root",
     "upsert_env_value",

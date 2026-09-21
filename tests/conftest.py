@@ -8,6 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from utterscope.config import DB_PATH_KEY
+
+
+@pytest.fixture(autouse=True)
+def isolate_history_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep lesson-history writes inside the test temp directory."""
+    monkeypatch.setenv(DB_PATH_KEY, str(tmp_path / "history.sqlite"))
+
 
 @pytest.fixture
 def sample_audio(tmp_path: Path) -> Path:

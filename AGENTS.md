@@ -33,6 +33,7 @@
 * ランディレクトリ内に JSON・レポート（`report.md` / `report.html`）と、入力に用いた音声ファイルを保存する
 * analyze 完了時にレポートを常時生成する（`--no-llm` でも生成。LLM 章は省略）
 * 出力ルートは設定で絶対パス指定可能。対話のみ「毎回尋ねる」を許可する
+* レッスン履歴用 SQLite（既定: `~/.utterscope/history.sqlite`）は**索引**であり、成果物の正本はランディレクトリ側のファイルとする
 
 # 技術スタック
 * メイン言語：python
@@ -45,4 +46,5 @@
 * 話者識別：pyannote.audio
 * 高度英語評価：LLM API
 * HTML：Jinja2
+* 履歴索引：SQLite
 * 開発品質保証：Ruff, ty, pytest

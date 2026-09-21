@@ -13,6 +13,8 @@ from utterscope.asr import AsrError
 from utterscope.asr.models import DEFAULT_ASR_MODEL
 from utterscope.audio import AudioPreparationError
 from utterscope.cli.console import console
+from utterscope.cli.history_cmd import run_history
+from utterscope.cli.history_record import record_history
 from utterscope.cli.interactive import run_interactive
 from utterscope.cli.progress import CliProgress
 from utterscope.cli.setup_cmd import run_setup
@@ -118,6 +120,25 @@ def main(
 def setup() -> None:
     """Interactively save local settings to ``.env``."""
     run_setup()
+
+
+@app.command("history")
+def history_command(
+    limit: Annotated[
+        int,
+        typer.Option(
+            "--limit",
+            "-n",
+            help="Maximum number of recent runs to show (default: 20).",
+        ),
+    ] = 20,
+) -> None:
+    """List recent analyze runs from the local SQLite history index."""
+    try:
+        run_history(limit=limit)
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(EXIT_USER_ERROR) from exc
 
 
 @app.command()
@@ -243,6 +264,7 @@ def analyze(
         console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(EXIT_RUNTIME_ERROR) from exc
 
+    record_history(result, progress=progress)
     _print_result(result)
 
 

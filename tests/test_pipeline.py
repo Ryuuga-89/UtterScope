@@ -62,6 +62,9 @@ class RecordingProgress:
     def end(self, step: str, detail: str = "") -> None:
         self.events.append(f"end:{step}:{detail}")
 
+    def cancel(self) -> None:
+        self.events.append("cancel")
+
 
 class FakeFeedbackBackend:
     def run_pass_a(self, turns, *, learner_speaker: str, model: str):

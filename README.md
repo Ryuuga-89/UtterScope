@@ -216,6 +216,13 @@ Run without LLM-based analysis:
 utterscope analyze lesson.mp3 --no-llm
 ```
 
+List recent runs from the local SQLite history index:
+
+```bash
+utterscope history
+utterscope history --limit 50
+```
+
 Export structured results. `--output` sets the **root**; each run creates a
 timestamped folder `YYMMDD-n_<audio-stem>/` inside it (default root: `./results`):
 
@@ -327,8 +334,8 @@ The core analysis pipeline should remain usable without running a web server or 
 ### v0.4 — Progress tracking
 
 * [x] HTML reports
-* [ ] lesson history
-* [ ] SQLite storage
+* [x] lesson history
+* [x] SQLite storage
 * [ ] lesson comparison
 * [ ] longitudinal speaking metrics
 
