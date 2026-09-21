@@ -26,6 +26,7 @@ from utterscope.models import (
 from utterscope.report import (
     write_analysis_document,
     write_feedback_document,
+    write_reports,
     write_transcript_document,
 )
 from utterscope.runtime import silence_third_party
@@ -66,7 +67,7 @@ def run(
 
     Prepares audio, detects speech, transcribes, diarizes speakers,
     selects the learner, computes speaking metrics, optionally runs LLM
-    feedback, and writes JSON outputs.
+    feedback, and writes JSON outputs plus Markdown/HTML reports.
     """
     request.output_dir.mkdir(parents=True, exist_ok=True)
     work_dir = request.output_dir / WORK_DIRNAME
@@ -192,6 +193,26 @@ def run(
     if progress is not None:
         progress.end("write results")
 
+    if progress is not None:
+        progress.begin("generate reports")
+    source_audio_path = (
+        request.output_dir / request.audio_path.name
+        if (request.output_dir / request.audio_path.name).is_file()
+        else None
+    )
+    report_md_path, report_html_path = write_reports(
+        request.output_dir,
+        transcript_document=document,
+        analysis_document=analysis_document,
+        feedback_document=feedback_document,
+        duration_seconds=prepared.duration_seconds,
+        audio_filename=(
+            source_audio_path.name if source_audio_path is not None else None
+        ),
+    )
+    if progress is not None:
+        progress.end("generate reports", "report.md, report.html")
+
     return AnalyzeResult(
         document=document,
         transcript_path=transcript_path,
@@ -202,9 +223,7 @@ def run(
         feedback_document=feedback_document,
         feedback_path=feedback_path,
         run_dir=request.output_dir,
-        source_audio_path=(
-            request.output_dir / request.audio_path.name
-            if (request.output_dir / request.audio_path.name).is_file()
-            else None
-        ),
+        source_audio_path=source_audio_path,
+        report_md_path=report_md_path,
+        report_html_path=report_html_path,
     )

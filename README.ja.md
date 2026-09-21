@@ -102,7 +102,7 @@ UtterScopeは文字起こし結果と音声から、決定論的に計算でき�
 
 ### レポート
 
-各回の解析結果は、1つのランディレクトリにまとめて保存します（現状は JSON。HTML レポートは予定）:
+各回の解析結果は、1つのランディレクトリにまとめて保存します:
 
 ```text
 results/
@@ -111,9 +111,12 @@ results/
     ├── transcript.json
     ├── analysis.json
     ├── feedback.json       # 任意 (--llm)
-    └── report.html         # 予定
+    ├── report.md           # 人が読む要約
+    └── report.html         # タイムライン＋音声の対話レポート
 ```
 
+`report.md` と `report.html` は analyze 完了時に常時生成されます（`--no-llm` でも生成。
+フィードバック節には LLM 未実行である旨を記載します）。
 ## 仕組み
 
 ```text id="df74yz"
@@ -232,7 +235,9 @@ utterscope analyze lesson.mp3 --learner SPEAKER_01 --output ./results
     ├── lesson.mp3
     ├── transcript.json   # 話者付き文字起こし
     ├── analysis.json     # 学習者の発話指標（時間・WPM・ポーズ・フィラーなど）
-    └── feedback.json     # 任意の LLM フィードバック（--llm）
+    ├── feedback.json     # 任意の LLM フィードバック（--llm）
+    ├── report.md
+    └── report.html
 ```
 
 絶対パスの出力ルートや「毎回尋ねる」（対話のみ）は `utterscope setup` で設定できます。
@@ -324,11 +329,11 @@ Webサーバーを起動したりJavaScriptフロントエンドをインスト�
 
 ### v0.4 — 成長の追跡
 
+* [x] HTMLレポート
 * [ ] レッスン履歴
 * [ ] SQLiteによる保存
 * [ ] レッスン間比較
 * [ ] 長期的なスピーキング指標
-* [ ] HTMLレポート
 
 ### 将来的な機能
 

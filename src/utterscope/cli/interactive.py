@@ -39,7 +39,7 @@ from utterscope.output import create_run_layout
 from utterscope.pipeline import FEEDBACK_FILENAME
 from utterscope.pipeline import run as run_pipeline
 from utterscope.pipeline.analyze import PipelineProgress
-from utterscope.report import write_feedback_document
+from utterscope.report import write_feedback_document, write_reports
 
 _AUDIO_SUFFIXES = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aac", ".mp4"}
 
@@ -331,9 +331,33 @@ def _run_feedback(
     if progress is not None:
         progress.end("write feedback")
 
+    if result.analysis_document is None:
+        msg = "analysis document is required before regenerating reports"
+        raise LlmError(msg)
+
+    if progress is not None:
+        progress.begin("generate reports")
+    audio_filename = (
+        result.source_audio_path.name
+        if result.source_audio_path is not None
+        else result.document.source_audio
+    )
+    report_md_path, report_html_path = write_reports(
+        result.transcript_path.parent,
+        transcript_document=result.document,
+        analysis_document=result.analysis_document,
+        feedback_document=feedback_document,
+        duration_seconds=result.duration_seconds,
+        audio_filename=audio_filename,
+    )
+    if progress is not None:
+        progress.end("generate reports", "report.md, report.html")
+
     return result.model_copy(
         update={
             "feedback_document": feedback_document,
             "feedback_path": written,
+            "report_md_path": report_md_path,
+            "report_html_path": report_html_path,
         }
     )

@@ -3118,6 +3118,7 @@ version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
+    { name = "jinja2" },
     { name = "mlx-whisper" },
     { name = "onnxruntime" },
     { name = "pyannote-audio" },
@@ -3138,6 +3139,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "google-genai", specifier = ">=2.24.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "mlx-whisper", specifier = ">=0.4.3" },
     { name = "onnxruntime", specifier = ">=1.30.0" },
     { name = "pyannote-audio", specifier = ">=4" },

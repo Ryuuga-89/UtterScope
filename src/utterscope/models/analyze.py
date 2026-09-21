@@ -71,3 +71,11 @@ class AnalyzeResult(BaseModel):
         default=None,
         description="Copied source audio inside the run directory.",
     )
+    report_md_path: Path | None = Field(
+        default=None,
+        description="Human-facing Markdown report path.",
+    )
+    report_html_path: Path | None = Field(
+        default=None,
+        description="Interactive HTML report path.",
+    )

@@ -113,6 +113,10 @@ def test_run_assigns_speakers_and_learner(sample_audio: Path, tmp_path: Path) ->
     assert result.analysis_document.learner_speaker == "SPEAKER_01"
     assert result.analysis_document.metrics.turn_count == 1
     assert result.feedback_path is None
+    assert result.report_md_path == output_dir / "report.md"
+    assert result.report_html_path == output_dir / "report.html"
+    assert result.report_md_path.is_file()
+    assert result.report_html_path.is_file()
     assert progress.events == [
         "begin:prepare audio",
         "end:prepare audio:1.0s",
@@ -126,6 +130,8 @@ def test_run_assigns_speakers_and_learner(sample_audio: Path, tmp_path: Path) ->
         "end:analyze learner speech:60 wpm",
         "begin:write results",
         "end:write results:",
+        "begin:generate reports",
+        "end:generate reports:report.md, report.html",
     ]
 
 

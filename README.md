@@ -98,7 +98,7 @@ The core transcription and quantitative analysis remain usable without an LLM.
 
 ### Reports
 
-Analysis results for each run are stored together in one directory (JSON today; HTML reports planned):
+Analysis results for each run are stored together in one directory:
 
 ```text
 results/
@@ -107,9 +107,12 @@ results/
     ├── transcript.json
     ├── analysis.json
     ├── feedback.json       # optional (--llm)
-    └── report.html         # planned
+    ├── report.md           # human-readable summary
+    └── report.html         # interactive timeline + audio
 ```
 
+`report.md` and `report.html` are always written at the end of analyze (even with
+`--no-llm`; the feedback sections note that LLM was skipped).
 ## How it works
 
 ```text
@@ -228,7 +231,9 @@ Outputs:
     ├── lesson.mp3
     ├── transcript.json   # diarized transcript
     ├── analysis.json     # learner metrics (time, WPM, pauses, fillers, …)
-    └── feedback.json     # optional LLM feedback (--llm)
+    ├── feedback.json     # optional LLM feedback (--llm)
+    ├── report.md
+    └── report.html
 ```
 
 Configure a fixed absolute output root or “ask every time” (interactive only)
@@ -321,11 +326,11 @@ The core analysis pipeline should remain usable without running a web server or 
 
 ### v0.4 — Progress tracking
 
+* [x] HTML reports
 * [ ] lesson history
 * [ ] SQLite storage
 * [ ] lesson comparison
 * [ ] longitudinal speaking metrics
-* [ ] HTML reports
 
 ### Future
 

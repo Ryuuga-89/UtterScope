@@ -257,6 +257,10 @@ def _print_result(result: AnalyzeResult) -> None:
         console.print(f"Analysis → {result.analysis_path}")
     if result.feedback_path is not None:
         console.print(f"Feedback → {result.feedback_path}")
+    if result.report_md_path is not None:
+        console.print(f"Report (MD) → {result.report_md_path}")
+    if result.report_html_path is not None:
+        console.print(f"Report (HTML) → {result.report_html_path}")
     if result.learner_speaker is not None:
         console.print(f"Learner → {result.learner_speaker}")
     if result.analysis_document is not None:

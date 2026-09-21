@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>分析レポート — {{ view.source_audio }}</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --ink: #1a2330;
+      --muted: #5c6b7a;
+      --line: #d5dde5;
+      --accent: #0f766e;
+      --accent-soft: #ccfbf1;
+      --learner: #0f766e;
+      --other: #475569;
+      --high: #b45309;
+      --medium: #0369a1;
+      --low: #64748b;
+      --font: "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 1.25rem 1.5rem 1rem;
+    }
+    header h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    header .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+    }
+    header .meta code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+    }
+    .player {
+      margin-top: 0.9rem;
+    }
+    .player audio {
+      width: 100%;
+      max-width: 40rem;
+      height: 2.5rem;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.9fr);
+      gap: 0;
+      min-height: calc(100vh - 9rem);
+      align-items: stretch;
+    }
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+      .panel { border-left: none; border-top: 1px solid var(--line); }
+    }
+    .timeline {
+      padding: 1rem 1.25rem 2rem;
+    }
+    .panel {
+      background: var(--surface);
+      border-left: 1px solid var(--line);
+      padding: 1rem 1.25rem 2rem;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow: auto;
+    }
+    section h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 0.55rem 0.7rem;
+    }
+    .metric .label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .metric .value {
+      font-size: 1.05rem;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary, .patterns {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .patterns ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+    .turns { display: flex; flex-direction: column; gap: 0.45rem; }
+    .turn {
+      text-align: left;
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0.7rem 0.85rem;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .turn:hover { border-color: #94a3b8; }
+    .turn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .turn.has-issue { box-shadow: inset 3px 0 0 var(--high); }
+    .turn .who {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    .turn.learner .who .role { color: var(--learner); font-weight: 650; }
+    .turn.other .who .role { color: var(--other); font-weight: 600; }
+    .turn .text { white-space: pre-wrap; word-break: break-word; }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.35rem;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      margin-left: 0.35rem;
+    }
+    .issue {
+      border: 1px solid var(--line);
+      padding: 0.7rem 0.8rem;
+      margin-bottom: 0.55rem;
+    }
+    .issue .head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      margin-bottom: 0.35rem;
+    }
+    .sev-high { color: var(--high); font-weight: 700; }
+    .sev-medium { color: var(--medium); font-weight: 650; }
+    .sev-low { color: var(--low); font-weight: 600; }
+    .issue .excerpt {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0.25rem 0;
+    }
+    .issue .suggestion {
+      margin-top: 0.35rem;
+      font-size: 0.9rem;
+    }
+    .empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .panel-hint {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>分析レポート</h1>
+    <div class="meta">
+      <span>音声 <code>{{ view.source_audio }}</code></span>
+      <span>ASR <code>{{ view.asr_model }}</code></span>
+      <span>学習者 <code>{{ view.learner_speaker }}</code></span>
+      {% if view.duration_label %}
+      <span>長さ {{ view.duration_label }}</span>
+      {% endif %}
+      {% if view.has_feedback and view.llm_model %}
+      <span>LLM <code>{{ view.llm_provider }} / {{ view.llm_model }}</code></span>
+      {% endif %}
+    </div>
+    {% if view.audio_filename %}
+    <div class="player">
+      <audio id="player" controls preload="metadata" src="{{ view.audio_filename }}"></audio>
+    </div>
+    {% endif %}
+  </header>
+
+  <main>
+    <div class="timeline">
+      <section>
+        <h2>発話メトリクス</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span class="label">発話時間</span>
+            <span class="value">{{ '%.1f'|format(view.metrics['speaking_time_seconds']) }}s</span>
+          </div>
+          <div class="metric">
+            <span class="label">発話比率</span>
+            <span class="value">{{ '%.0f'|format(view.metrics['speaking_ratio'] * 100) }}%</span>
+          </div>
+          <div class="metric">
+            <span class="label">WPM</span>
+            <span class="value">{{ '%.0f'|format(view.metrics['wpm']) }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">ターン数</span>
+            <span class="value">{{ view.metrics['turn_count'] }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">平均ターン</span>
+            <span class="value">{{ '%.1f'|format(view.metrics['average_turn_seconds']) }}s</span>
+          </div>
+          <div class="metric">
+            <span class="label">ポーズ</span>
+            <span class="value">{{ view.metrics['pause_count'] }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">長いポーズ</span>
+            <span class="value">{{ view.metrics['long_pause_count'] }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">フィラー</span>
+            <span class="value">{{ view.metrics['filler_count'] }}</span>
+          </div>
+        </div>
+      </section>
+
+      {% if view.has_feedback %}
+      <section>
+        <h2>フィードバック</h2>
+        {% if view.summary %}
+        <div class="summary">{{ view.summary }}</div>
+        {% endif %}
+        {% if view.recurring_patterns %}
+        <div class="patterns">
+          <strong>繰り返しパターン</strong>
+          <ul>
+            {% for pattern in view.recurring_patterns %}
+            <li>
+              <strong>{{ pattern.category_label }}</strong> · {{ pattern.label }}
+              （{{ pattern.count }} 回）— {{ pattern.message }}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </section>
+      {% else %}
+      <section>
+        <h2>フィードバック</h2>
+        <p class="empty">LLM フィードバックは実行されていません。</p>
+      </section>
+      {% endif %}
+
+      <section>
+        <h2>対話タイムライン</h2>
+        {% if view.turns %}
+        <div class="turns" id="turns">
+          {% for turn in view.turns %}
+          <button
+            type="button"
+            class="turn {{ 'learner' if turn.is_learner else 'other' }}{{ ' has-issue' if turn.issues else '' }}"
+            data-index="{{ turn.index }}"
+            data-start="{{ turn.start }}"
+            data-end="{{ turn.end }}"
+          >
+            <div class="who">
+              <span class="role">
+                ターン {{ turn.index }} · {{ turn.role_label }}
+                {% if turn.issues %}
+                <span class="badge">指摘 {{ turn.issues|length }}</span>
+                {% endif %}
+              </span>
+              <span>{{ turn.start_label }}–{{ turn.end_label }}</span>
+            </div>
+            <div class="text">{{ turn.text or "（無音）" }}</div>
+          </button>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">発話ターンはありません。</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="panel" id="panel">
+      <h2>指摘パネル</h2>
+      <p class="panel-hint">タイムラインのターンを選ぶか、再生位置に合わせて表示します。</p>
+      <div id="panel-body">
+        <p class="empty">ターンを選択してください。</p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      const player = document.getElementById("player");
+      const buttons = Array.from(document.querySelectorAll(".turn"));
+      const panelBody = document.getElementById("panel-body");
+
+      const issuesByTurn = {};
+      {% for turn in view.turns %}
+      issuesByTurn[{{ turn.index }}] = [
+        {% for issue in turn.issues %}
+        {
+          categoryLabel: {{ issue.category_label | tojson }},
+          severity: {{ issue.severity | tojson }},
+          severityLabel: {{ issue.severity_label | tojson }},
+          excerpt: {{ issue.excerpt | tojson }},
+          message: {{ issue.message | tojson }},
+          suggestion: {{ issue.suggestion | tojson }},
+          startLabel: {{ issue.start_label | tojson }},
+          endLabel: {{ issue.end_label | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ];
+      {% endfor %}
+
+      let activeIndex = null;
+      // Ignore timeupdate while a click-driven seek is in flight.
+      let suppressSyncUntil = 0;
+
+      function renderPanel(index) {
+        const issues = issuesByTurn[index] || [];
+        if (!issues.length) {
+          panelBody.innerHTML = '<p class="empty">このターンに指摘はありません。</p>';
+          return;
+        }
+        panelBody.innerHTML = issues.map(function (issue) {
+          const sevClass = "sev-" + issue.severity;
+          const suggestion = issue.suggestion
+            ? '<div class="suggestion">提案: 「' + escapeHtml(issue.suggestion) + '」</div>'
+            : "";
+          return (
+            '<div class="issue">' +
+              '<div class="head">' +
+                '<span class="' + sevClass + '">[' + escapeHtml(issue.severityLabel) + ']</span>' +
+                '<span>' + escapeHtml(issue.categoryLabel) + '</span>' +
+                '<span>' + escapeHtml(issue.startLabel) + '–' + escapeHtml(issue.endLabel) + '</span>' +
+              '</div>' +
+              '<div class="excerpt">「' + escapeHtml(issue.excerpt) + '」</div>' +
+              '<div>' + escapeHtml(issue.message) + '</div>' +
+              suggestion +
+            '</div>'
+          );
+        }).join("");
+      }
+
+      function escapeHtml(value) {
+        if (value == null) return "";
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function highlight(index) {
+        activeIndex = index;
+        buttons.forEach(function (btn) {
+          btn.classList.toggle(
+            "active",
+            Number(btn.dataset.index) === index
+          );
+        });
+        renderPanel(index);
+      }
+
+      function seekAndPlay(seconds) {
+        if (!player) return;
+        suppressSyncUntil = performance.now() + 500;
+
+        const apply = function () {
+          try {
+            player.currentTime = seconds;
+          } catch (err) {
+            // Ignore until metadata is ready; loadedmetadata retries below.
+          }
+          const playPromise = player.play();
+          if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch(function () {});
+          }
+        };
+
+        if (player.readyState >= 1) {
+          apply();
+          return;
+        }
+        player.addEventListener("loadedmetadata", apply, { once: true });
+      }
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const index = Number(btn.dataset.index);
+          const start = Number(btn.dataset.start);
+          highlight(index);
+          seekAndPlay(start);
+        });
+      });
+
+      if (player) {
+        player.addEventListener("seeked", function () {
+          suppressSyncUntil = performance.now() + 150;
+        });
+        player.addEventListener("timeupdate", function () {
+          if (performance.now() < suppressSyncUntil) return;
+          const t = player.currentTime;
+          let match = null;
+          for (const btn of buttons) {
+            const start = Number(btn.dataset.start);
+            const end = Number(btn.dataset.end);
+            if (t >= start && t < end + 0.05) {
+              match = Number(btn.dataset.index);
+              break;
+            }
+          }
+          if (match !== null && match !== activeIndex) {
+            highlight(match);
+          }
+        });
+      }
+
+      if (buttons.length) {
+        highlight(Number(buttons[0].dataset.index));
+      }
+    })();
+  </script>
+</body>
+</html>
