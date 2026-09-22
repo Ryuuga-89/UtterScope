@@ -17,6 +17,8 @@ from utterscope.models.feedback import (
 )
 from utterscope.models.transcript import TranscriptDocument
 
+DEFAULT_REPORT_TURN_GAP_SECONDS = 5.0
+
 
 class AnalyzeRequest(BaseModel):
     """Inputs for a single analyze run."""
@@ -36,6 +38,14 @@ class AnalyzeRequest(BaseModel):
         default=DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS,
         gt=0,
         description="Pauses at or above this many seconds count as long.",
+    )
+    report_turn_gap_seconds: float = Field(
+        default=DEFAULT_REPORT_TURN_GAP_SECONDS,
+        ge=0,
+        description=(
+            "Max silence (seconds) between same-speaker segments when merging "
+            "turns in report.md / report.html."
+        ),
     )
     llm_model: str = Field(
         default=DEFAULT_LLM_MODEL,

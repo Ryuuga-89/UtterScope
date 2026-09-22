@@ -1,35 +1,9 @@
-"""Tests for diarization helpers."""
+"""Tests for learner speaker selection helpers."""
 
 from __future__ import annotations
 
-from utterscope.diarization import (
-    DiarizationResult,
-    SpeakerTurn,
-    assign_speakers,
-    build_speaker_previews,
-)
+from utterscope.diarization import build_speaker_previews
 from utterscope.models import Segment, Transcript
-
-
-def test_assign_speakers_uses_max_overlap() -> None:
-    transcript = Transcript(
-        segments=[
-            Segment(start=0.0, end=2.0, text="Hello"),
-            Segment(start=2.0, end=4.0, text="Hi there"),
-        ],
-        full_text="Hello Hi there",
-    )
-    diarization = DiarizationResult(
-        turns=[
-            SpeakerTurn(start=0.0, end=2.5, speaker_id="SPEAKER_00"),
-            SpeakerTurn(start=2.5, end=4.0, speaker_id="SPEAKER_01"),
-        ]
-    )
-
-    assigned = assign_speakers(transcript, diarization)
-
-    assert assigned.segments[0].speaker == "SPEAKER_00"
-    assert assigned.segments[1].speaker == "SPEAKER_01"
 
 
 def test_build_speaker_previews() -> None:

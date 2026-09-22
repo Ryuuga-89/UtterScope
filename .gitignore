@@ -36,6 +36,7 @@ htmlcov/
 !templates/**
 report.html
 results/
+scratch/
 .utterscope/
 audio/
 /transcript.json

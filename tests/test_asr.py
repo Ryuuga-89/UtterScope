@@ -24,7 +24,8 @@ def test_resolve_model_path_passthrough() -> None:
     assert resolve_model_path(repo) == repo
 
 
-def test_default_asr_model_is_in_choices() -> None:
+def test_default_asr_model_is_large_v3() -> None:
+    assert DEFAULT_ASR_MODEL == "large-v3"
     assert DEFAULT_ASR_MODEL in ASR_MODEL_CHOICES
 
 

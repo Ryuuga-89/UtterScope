@@ -24,8 +24,9 @@ from utterscope.config import (
     read_env_value,
     resolve_long_pause_threshold,
     resolve_output_root,
+    resolve_report_turn_gap,
 )
-from utterscope.diarization import DiarizationError, FixedLearnerSelector
+from utterscope.diarization import FixedLearnerSelector
 from utterscope.llm import LlmError
 from utterscope.models import AnalyzeRequest, AnalyzeResult
 from utterscope.output import create_run_layout
@@ -49,7 +50,6 @@ EXIT_RUNTIME_ERROR = 2
 _PIPELINE_ERRORS = (
     AudioPreparationError,
     VadError,
-    DiarizationError,
     AsrError,
     LlmError,
 )
@@ -180,6 +180,17 @@ def analyze(
             ),
         ),
     ] = None,
+    report_turn_gap: Annotated[
+        float | None,
+        typer.Option(
+            "--report-turn-gap",
+            help=(
+                "Max silence (seconds) between same-speaker segments when "
+                "merging turns in the report. Overrides .env / setup "
+                "(default: 5.0)."
+            ),
+        ),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option(
@@ -202,6 +213,7 @@ def analyze(
 
     try:
         threshold = resolve_long_pause_threshold(long_pause_threshold)
+        turn_gap = resolve_report_turn_gap(report_turn_gap)
         output_root = resolve_output_root(output, interactive=False)
     except ValueError as exc:
         console.print(f"[red]Error:[/red] {exc}")
@@ -228,6 +240,7 @@ def analyze(
         llm=llm,
         learner_speaker=learner,
         long_pause_threshold_seconds=threshold,
+        report_turn_gap_seconds=turn_gap,
     )
     verbose = bool(ctx.obj.get("verbose", False))
 

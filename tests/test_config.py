@@ -9,13 +9,18 @@ import pytest
 
 from utterscope.config import (
     LONG_PAUSE_THRESHOLD_KEY,
+    REPORT_TURN_GAP_KEY,
     load_project_env,
     mask_secret,
     read_env_value,
     resolve_long_pause_threshold,
+    resolve_report_turn_gap,
     upsert_env_value,
 )
-from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
+from utterscope.models import (
+    DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS,
+    DEFAULT_REPORT_TURN_GAP_SECONDS,
+)
 
 
 def test_load_project_env_sets_missing_values(tmp_path: Path, monkeypatch) -> None:
@@ -88,3 +93,20 @@ def test_resolve_long_pause_threshold_priority(tmp_path: Path, monkeypatch) -> N
     with pytest.raises(ValueError):
         resolve_long_pause_threshold(0, project_dir=tmp_path)
     monkeypatch.delenv(LONG_PAUSE_THRESHOLD_KEY, raising=False)
+
+
+def test_resolve_report_turn_gap_priority(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv(REPORT_TURN_GAP_KEY, raising=False)
+    assert (
+        resolve_report_turn_gap(project_dir=tmp_path)
+        == DEFAULT_REPORT_TURN_GAP_SECONDS
+    )
+
+    upsert_env_value(REPORT_TURN_GAP_KEY, "8", tmp_path)
+    assert resolve_report_turn_gap(project_dir=tmp_path) == 8.0
+    assert resolve_report_turn_gap(2.5, project_dir=tmp_path) == 2.5
+    assert resolve_report_turn_gap(0, project_dir=tmp_path) == 0.0
+
+    with pytest.raises(ValueError):
+        resolve_report_turn_gap(-1, project_dir=tmp_path)
+    monkeypatch.delenv(REPORT_TURN_GAP_KEY, raising=False)

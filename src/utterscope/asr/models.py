@@ -1,4 +1,4 @@
-"""Map CLI model names to mlx-whisper Hugging Face repos."""
+"""Map CLI model names to Hugging Face Whisper repos (MLX / whispermlx)."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ ASR_MODEL_CHOICES: tuple[str, ...] = (
     "large-v3-turbo",
 )
 
-DEFAULT_ASR_MODEL = "tiny.en"
+DEFAULT_ASR_MODEL = "large-v3"
 
 
 @dataclass(frozen=True)

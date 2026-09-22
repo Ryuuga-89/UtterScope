@@ -76,9 +76,8 @@ def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
     def fake_run(
         request,
         *,
-        asr=None,
+        backend=None,
         vad=None,
-        diarization=None,
         learner_selector=None,
         progress=None,
         quiet=True,
@@ -90,10 +89,8 @@ def test_analyze_reports_progress(sample_audio: Path, tmp_path: Path) -> None:
         progress.end("prepare audio", "1.0s")
         progress.begin("detect speech")
         progress.end("detect speech", "2 intervals")
-        progress.begin("transcribe")
-        progress.end("transcribe", "1 segments")
-        progress.begin("identify speakers")
-        progress.end("identify speakers", "2 speakers")
+        progress.begin("transcribe + identify speakers")
+        progress.end("transcribe + identify speakers", "1 segments, 2 speakers")
         progress.begin("analyze learner speech")
         progress.end("analyze learner speech", "60 wpm")
         progress.begin("write results")
@@ -247,6 +244,27 @@ def test_analyze_rejects_non_positive_long_pause_threshold(
     )
     assert result.exit_code != 0
     assert "greater than 0" in result.output
+
+
+def test_analyze_rejects_negative_report_turn_gap(
+    sample_audio: Path, tmp_path: Path
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            str(sample_audio),
+            "--no-llm",
+            "--learner",
+            "SPEAKER_01",
+            "--report-turn-gap",
+            "-1",
+            "--output",
+            str(tmp_path / "out"),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "greater than or equal to 0" in result.output
 
 
 def test_analyze_invalid_audio_fails(tmp_path: Path) -> None:

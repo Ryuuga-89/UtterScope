@@ -10,6 +10,7 @@ from utterscope.config.env import (
     LONG_PAUSE_THRESHOLD_KEY,
     OUTPUT_ASK_KEY,
     OUTPUT_ROOT_KEY,
+    REPORT_TURN_GAP_KEY,
     is_output_ask_enabled,
     load_project_env,
     mask_secret,
@@ -18,6 +19,7 @@ from utterscope.config.env import (
     resolve_db_path,
     resolve_long_pause_threshold,
     resolve_output_root,
+    resolve_report_turn_gap,
     upsert_env_value,
 )
 
@@ -31,6 +33,7 @@ __all__ = [
     "LONG_PAUSE_THRESHOLD_KEY",
     "OUTPUT_ASK_KEY",
     "OUTPUT_ROOT_KEY",
+    "REPORT_TURN_GAP_KEY",
     "is_output_ask_enabled",
     "load_project_env",
     "mask_secret",
@@ -39,5 +42,6 @@ __all__ = [
     "resolve_db_path",
     "resolve_long_pause_threshold",
     "resolve_output_root",
+    "resolve_report_turn_gap",
     "upsert_env_value",
 ]

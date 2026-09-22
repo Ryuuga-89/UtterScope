@@ -10,12 +10,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
+from utterscope.models.analyze import DEFAULT_REPORT_TURN_GAP_SECONDS
 
 _ENV_LINE_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 
 HF_TOKEN_KEY = "HF_TOKEN"
 GEMINI_API_KEY = "GEMINI_API_KEY"
 LONG_PAUSE_THRESHOLD_KEY = "UTTERSCOPE_LONG_PAUSE_THRESHOLD"
+REPORT_TURN_GAP_KEY = "UTTERSCOPE_REPORT_TURN_GAP"
 OUTPUT_ROOT_KEY = "UTTERSCOPE_OUTPUT_ROOT"
 OUTPUT_ASK_KEY = "UTTERSCOPE_OUTPUT_ASK"
 DB_PATH_KEY = "UTTERSCOPE_DB_PATH"
@@ -135,6 +137,35 @@ def resolve_long_pause_threshold(
         raise ValueError(msg) from exc
     if value <= 0:
         msg = f"{LONG_PAUSE_THRESHOLD_KEY} must be greater than 0"
+        raise ValueError(msg)
+    return value
+
+
+def resolve_report_turn_gap(
+    cli_value: float | None = None,
+    *,
+    project_dir: Path | None = None,
+) -> float:
+    """Resolve report turn-merge gap: CLI > env/.env > default."""
+    if cli_value is not None:
+        if cli_value < 0:
+            msg = "report turn gap must be greater than or equal to 0"
+            raise ValueError(msg)
+        return cli_value
+
+    raw = read_env_value(REPORT_TURN_GAP_KEY, project_dir)
+    if raw is None:
+        return DEFAULT_REPORT_TURN_GAP_SECONDS
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        msg = (
+            f"invalid {REPORT_TURN_GAP_KEY}={raw!r}; "
+            "expected a non-negative number"
+        )
+        raise ValueError(msg) from exc
+    if value < 0:
+        msg = f"{REPORT_TURN_GAP_KEY} must be greater than or equal to 0"
         raise ValueError(msg)
     return value
 

@@ -31,6 +31,25 @@ def test_build_dialogue_turns_merges_adjacent_same_speaker() -> None:
     assert turns[1].index == 1
 
 
+def test_build_dialogue_turns_respects_max_gap() -> None:
+    transcript = Transcript(
+        language="en",
+        segments=[
+            Segment(start=0.0, end=1.0, text="Hello", speaker="SPEAKER_00"),
+            Segment(start=3.0, end=4.0, text="again", speaker="SPEAKER_00"),
+            Segment(start=4.5, end=5.0, text="Hi", speaker="SPEAKER_01"),
+        ],
+        full_text="Hello again Hi",
+    )
+    tight = build_dialogue_turns(transcript, max_gap_seconds=0.05)
+    assert len(tight) == 3
+
+    loose = build_dialogue_turns(transcript, max_gap_seconds=5.0)
+    assert len(loose) == 2
+    assert loose[0].text == "Hello again"
+    assert loose[0].end == 4.0
+
+
 def test_context_window_and_learner_indices() -> None:
     transcript = Transcript(
         language="en",

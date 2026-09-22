@@ -195,3 +195,62 @@ def test_write_reports_without_feedback(tmp_path: Path) -> None:
     assert "LLM フィードバックは実行されていません" in md
     assert "LLM フィードバックは実行されていません" in html
     assert "ターン 0" in md
+
+
+def test_write_reports_merges_same_speaker_within_gap(tmp_path: Path) -> None:
+    transcript = TranscriptDocument(
+        source_audio="lesson.mp3",
+        model="tiny",
+        transcript=Transcript(
+            language="en",
+            segments=[
+                Segment(
+                    start=0.0,
+                    end=1.0,
+                    text="Hello.",
+                    speaker="SPEAKER_00",
+                ),
+                Segment(
+                    start=3.0,
+                    end=4.0,
+                    text="How are you?",
+                    speaker="SPEAKER_00",
+                ),
+                Segment(
+                    start=4.5,
+                    end=5.5,
+                    text="I'm fine.",
+                    speaker="SPEAKER_01",
+                ),
+            ],
+            full_text="Hello. How are you? I'm fine.",
+        ),
+    )
+    analysis = AnalysisDocument(
+        source_audio="lesson.mp3",
+        model="tiny",
+        learner_speaker="SPEAKER_01",
+        speakers=[
+            SpeakerRole(speaker_id="SPEAKER_00", role="other"),
+            SpeakerRole(speaker_id="SPEAKER_01", role="student"),
+        ],
+        metrics=SpeakingMetrics(
+            speaking_time_seconds=3.0,
+            speaking_ratio=0.5,
+            wpm=60.0,
+            turn_count=2,
+            average_turn_seconds=1.5,
+            pause_count=1,
+            long_pause_count=0,
+            filler_count=0,
+        ),
+    )
+    md_path, _ = write_reports(
+        tmp_path,
+        transcript_document=transcript,
+        analysis_document=analysis,
+        turn_gap_seconds=5.0,
+    )
+    md = md_path.read_text(encoding="utf-8")
+    assert "Hello. How are you?" in md
+    assert md.count("### ターン") == 2

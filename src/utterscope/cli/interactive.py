@@ -24,6 +24,7 @@ from utterscope.config import (
     read_env_value,
     resolve_long_pause_threshold,
     resolve_output_root,
+    resolve_report_turn_gap,
 )
 from utterscope.llm import LlmError, generate_feedback_document
 from utterscope.llm.catalog import (
@@ -113,7 +114,7 @@ def prompt_audio_path() -> Path:
 
 
 def prompt_asr_model() -> str:
-    """Ask which Whisper / mlx-whisper model to use."""
+    """Ask which whispermlx / Whisper model to use."""
     models = list_asr_models()
     count = max(1, len(models) - 1)
     options: list[RadioOption] = []
@@ -233,6 +234,7 @@ def run_interactive(
     audio = prompt_audio_path()
     asr_model = prompt_asr_model()
     threshold = resolve_long_pause_threshold(None)
+    turn_gap = resolve_report_turn_gap(None)
     root = resolve_output_root(
         output_root,
         interactive=True,
@@ -257,6 +259,7 @@ def run_interactive(
         output_dir=layout.run_dir,
         llm=False,
         long_pause_threshold_seconds=threshold,
+        report_turn_gap_seconds=turn_gap,
     )
     progress = CliProgress()
     try:
@@ -288,6 +291,7 @@ def run_interactive(
         result = _run_feedback(
             result,
             llm_model=llm_choice.model,
+            report_turn_gap_seconds=turn_gap,
             progress=progress,
         )
         _record_and_return(result, progress)
@@ -308,6 +312,7 @@ def _run_feedback(
     result: AnalyzeResult,
     *,
     llm_model: str,
+    report_turn_gap_seconds: float,
     progress: PipelineProgress | None,
 ) -> AnalyzeResult:
     if result.learner_speaker is None:
@@ -360,6 +365,7 @@ def _run_feedback(
         feedback_document=feedback_document,
         duration_seconds=result.duration_seconds,
         audio_filename=audio_filename,
+        turn_gap_seconds=report_turn_gap_seconds,
     )
     if progress is not None:
         progress.end("generate reports", "report.md, report.html")

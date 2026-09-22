@@ -8,7 +8,11 @@ from utterscope.models.analysis import (
     SpeakerRoleName,
     SpeakingMetrics,
 )
-from utterscope.models.analyze import AnalyzeRequest, AnalyzeResult
+from utterscope.models.analyze import (
+    DEFAULT_REPORT_TURN_GAP_SECONDS,
+    AnalyzeRequest,
+    AnalyzeResult,
+)
 from utterscope.models.feedback import (
     DEFAULT_FEEDBACK_CONTEXT_TURNS,
     DEFAULT_LLM_MODEL,
@@ -35,6 +39,7 @@ __all__ = [
     "DEFAULT_LLM_MODEL",
     "DEFAULT_LLM_PROVIDER",
     "DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS",
+    "DEFAULT_REPORT_TURN_GAP_SECONDS",
     "FEEDBACK_SCHEMA_VERSION",
     "SCHEMA_VERSION",
     "AnalysisDocument",

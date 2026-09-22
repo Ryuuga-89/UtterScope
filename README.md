@@ -124,12 +124,10 @@ FFmpeg
   ▼
 Voice Activity Detection
   │
-  ├───────────────┐
-  ▼               ▼
-ASR          Diarization
-  │               │
-  └───────┬───────┘
-          ▼
+  ▼
+whispermlx (ASR + diarization)
+  │
+  ▼
  Structured Transcript
           │
      ┌────┴────┐
@@ -142,7 +140,7 @@ ASR          Diarization
        Report
 ```
 
-UtterScope is designed around interchangeable components so that transcription, diarization, and language-analysis backends can evolve independently.
+UtterScope is designed around interchangeable components so that transcription and language-analysis backends can evolve independently.
 
 ## Installation
 
@@ -173,7 +171,7 @@ For speaker diarization and optional LLM feedback, run the interactive setup onc
 uv run utterscope setup
 ```
 
-Setup can save `HF_TOKEN` (pyannote) and `GEMINI_API_KEY` (Gemini feedback). Without a Gemini key, pass `--no-llm` or analysis will exit with an error when `--llm` is on (the default).
+Setup can save `HF_TOKEN` (whispermlx speaker diarization) and `GEMINI_API_KEY` (Gemini feedback). Without a Gemini key, pass `--no-llm` or analysis will exit with an error when `--llm` is on (the default).
 
 ## Usage
 
@@ -196,7 +194,7 @@ Skip interactive selection by passing a speaker id (required for non-interactive
 utterscope analyze lesson.mp3 --learner SPEAKER_01
 ```
 
-Specify an ASR model:
+Specify an ASR model (default: `large-v3`):
 
 ```bash
 utterscope analyze lesson.mp3 --model large-v3-turbo
@@ -206,6 +204,12 @@ Change how long a pause must be to count as "long". The CLI flag wins; otherwise
 
 ```bash
 utterscope analyze lesson.mp3 --long-pause-threshold 1.5
+```
+
+Control how aggressively same-speaker segments are merged in the report. Gaps at or below this many seconds stay in one turn (default: 5.0s; setup / `.env` key `UTTERSCOPE_REPORT_TURN_GAP`):
+
+```bash
+utterscope analyze lesson.mp3 --report-turn-gap 5
 ```
 
 You can also set the same value interactively with `utterscope setup`.
@@ -259,8 +263,8 @@ The current technology stack includes:
 | Data models              | Pydantic              |
 | Audio processing         | FFmpeg                |
 | Voice activity detection | Silero VAD            |
-| Speech recognition       | MLX Whisper / Whisper |
-| Speaker diarization      | pyannote.audio        |
+| Speech recognition       | whispermlx (MLX Whisper) |
+| Speaker diarization      | whispermlx / pyannote    |
 | Report generation        | Jinja2                |
 | Storage                  | JSON / SQLite         |
 | Linting & formatting     | Ruff                  |

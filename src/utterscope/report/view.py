@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from utterscope.llm.turns import DialogueTurn, build_dialogue_turns
 from utterscope.models import (
+    DEFAULT_REPORT_TURN_GAP_SECONDS,
     AnalysisDocument,
     FeedbackDocument,
     FeedbackIssue,
@@ -77,6 +78,7 @@ class ReportView:
     duration_label: str | None
     metrics: dict[str, float | int]
     long_pause_threshold_seconds: float
+    report_turn_gap_seconds: float
     turns: list[ReportTurnView]
     has_feedback: bool
     summary: str | None
@@ -104,11 +106,16 @@ def _issue_view(issue: FeedbackIssue) -> ReportIssueView:
     )
 
 
+def _overlaps(issue: ReportIssueView, turn: DialogueTurn) -> bool:
+    """True when the issue time range overlaps the display turn."""
+    return issue.start < turn.end and issue.end > turn.start
+
+
 def _turn_view(
     turn: DialogueTurn,
     *,
     learner_speaker: str,
-    issues_by_turn: dict[int, list[ReportIssueView]],
+    issue_views: list[ReportIssueView],
 ) -> ReportTurnView:
     return ReportTurnView(
         index=turn.index,
@@ -121,7 +128,7 @@ def _turn_view(
         end_label=format_timestamp(turn.end),
         text=turn.text,
         is_learner=turn.speaker_id == learner_speaker,
-        issues=list(issues_by_turn.get(turn.index, [])),
+        issues=[issue for issue in issue_views if _overlaps(issue, turn)],
     )
 
 
@@ -132,16 +139,21 @@ def build_report_view(
     *,
     duration_seconds: float | None = None,
     audio_filename: str | None = None,
+    turn_gap_seconds: float = DEFAULT_REPORT_TURN_GAP_SECONDS,
 ) -> ReportView:
     """Build a display-oriented report view from pipeline documents."""
+    if turn_gap_seconds < 0:
+        msg = "turn_gap_seconds must be >= 0"
+        raise ValueError(msg)
+
     learner_speaker = analysis_document.learner_speaker
     turns = build_dialogue_turns(
         transcript_document.transcript,
         learner_speaker=learner_speaker,
+        max_gap_seconds=turn_gap_seconds,
     )
 
     issue_views: list[ReportIssueView] = []
-    issues_by_turn: dict[int, list[ReportIssueView]] = {}
     patterns: list[ReportPatternView] = []
     summary: str | None = None
     llm_provider: str | None = None
@@ -163,15 +175,13 @@ def build_report_view(
                 )
             )
         for issue in feedback_document.issues:
-            view = _issue_view(issue)
-            issue_views.append(view)
-            issues_by_turn.setdefault(issue.turn_index, []).append(view)
+            issue_views.append(_issue_view(issue))
 
     turn_views = [
         _turn_view(
             turn,
             learner_speaker=learner_speaker,
-            issues_by_turn=issues_by_turn,
+            issue_views=issue_views,
         )
         for turn in turns
     ]
@@ -197,6 +207,7 @@ def build_report_view(
             "filler_count": metrics.filler_count,
         },
         long_pause_threshold_seconds=(analysis_document.long_pause_threshold_seconds),
+        report_turn_gap_seconds=turn_gap_seconds,
         turns=turn_views,
         has_feedback=feedback_document is not None,
         summary=summary,

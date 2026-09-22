@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from utterscope.models import Segment, Transcript
 
 
-def transcript_from_whisper_result(result: dict[str, Any]) -> Transcript:
-    """Build a Transcript from an mlx-whisper / openai-whisper result dict."""
+def transcript_from_whisper_result(result: Mapping[str, Any]) -> Transcript:
+    """Build a Transcript from a whispermlx / Whisper-style result dict.
+
+    When segments include ``speaker`` (or word-level speakers), those labels
+    are preserved on each ``Segment``.
+    """
     raw_segments = result.get("segments") or []
     segments: list[Segment] = []
     for item in raw_segments:
+        if not isinstance(item, dict):
+            continue
         text = str(item.get("text", "")).strip()
         if not text:
             continue
@@ -20,6 +27,7 @@ def transcript_from_whisper_result(result: dict[str, Any]) -> Transcript:
                 start=float(item["start"]),
                 end=float(item["end"]),
                 text=text,
+                speaker=_speaker_of(item),
             )
         )
 
@@ -35,3 +43,19 @@ def transcript_from_whisper_result(result: dict[str, Any]) -> Transcript:
         segments=segments,
         full_text=full_text,
     )
+
+
+def _speaker_of(segment: dict[str, Any]) -> str | None:
+    for key in ("speaker", "Speaker"):
+        value = segment.get(key)
+        if value is not None and str(value).strip():
+            return str(value)
+    words = segment.get("words") or []
+    speakers = [
+        str(word.get("speaker"))
+        for word in words
+        if isinstance(word, dict) and word.get("speaker")
+    ]
+    if not speakers:
+        return None
+    return max(set(speakers), key=speakers.count)

@@ -15,14 +15,19 @@ from utterscope.config.env import (
     LONG_PAUSE_THRESHOLD_KEY,
     OUTPUT_ASK_KEY,
     OUTPUT_ROOT_KEY,
+    REPORT_TURN_GAP_KEY,
     is_output_ask_enabled,
     mask_secret,
     project_env_path,
     read_env_value,
     resolve_long_pause_threshold,
+    resolve_report_turn_gap,
     upsert_env_value,
 )
-from utterscope.models import DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS
+from utterscope.models import (
+    DEFAULT_LONG_PAUSE_THRESHOLD_SECONDS,
+    DEFAULT_REPORT_TURN_GAP_SECONDS,
+)
 
 HF_TOKEN_HELP_URL = "https://huggingface.co/settings/tokens"
 HF_MODEL_URL = "https://huggingface.co/pyannote/speaker-diarization-community-1"
@@ -57,6 +62,10 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
                     detail="seconds; used by analyze metrics",
                 ),
                 RadioOption(
+                    label="Report turn gap",
+                    detail="seconds; merge same-speaker turns in reports",
+                ),
+                RadioOption(
                     label="Output directory",
                     detail="analysis result root / ask every time",
                 ),
@@ -74,6 +83,8 @@ def run_setup(*, project_dir: Path | None = None) -> Path:
         elif choice == 2:
             _configure_long_pause_threshold(directory)
         elif choice == 3:
+            _configure_report_turn_gap(directory)
+        elif choice == 4:
             _configure_output_directory(directory)
         else:
             console.print("[dim]Setup finished.[/dim]")
@@ -88,6 +99,8 @@ def _print_current_settings(directory: Path) -> None:
     gemini = read_env_value(GEMINI_API_KEY, directory)
     threshold = resolve_long_pause_threshold(project_dir=directory)
     stored = read_env_value(LONG_PAUSE_THRESHOLD_KEY, directory)
+    turn_gap = resolve_report_turn_gap(project_dir=directory)
+    turn_gap_stored = read_env_value(REPORT_TURN_GAP_KEY, directory)
     ask = is_output_ask_enabled(directory)
     configured_root = read_env_value(OUTPUT_ROOT_KEY, directory)
 
@@ -104,6 +117,10 @@ def _print_current_settings(directory: Path) -> None:
     console.print(
         f"  Long pause threshold: [cyan]{threshold:g}s[/cyan]  [dim]({source})[/dim]"
     )
+    gap_source = "from .env" if turn_gap_stored is not None else "default"
+    console.print(
+        f"  Report turn gap: [cyan]{turn_gap:g}s[/cyan]  [dim]({gap_source})[/dim]"
+    )
     if ask:
         console.print(
             "  Output root: [cyan]ask every time[/cyan]  [dim](interactive only)[/dim]"
@@ -119,7 +136,9 @@ def _print_current_settings(directory: Path) -> None:
 
 
 def _configure_hf_token(directory: Path) -> None:
-    console.print("Speaker diarization needs a Hugging Face token for pyannote models.")
+    console.print(
+        "Speaker diarization (whispermlx / pyannote) needs a Hugging Face token."
+    )
     console.print(f"  1. Create a token: {HF_TOKEN_HELP_URL}")
     console.print(f"  2. Accept model terms: {HF_MODEL_URL}")
     console.print()
@@ -207,6 +226,38 @@ def _configure_long_pause_threshold(directory: Path) -> None:
     written = upsert_env_value(LONG_PAUSE_THRESHOLD_KEY, stored, directory)
     console.print(
         f"[green]✔[/green] Saved {LONG_PAUSE_THRESHOLD_KEY}={stored} to {written}"
+    )
+
+
+def _configure_report_turn_gap(directory: Path) -> None:
+    current = resolve_report_turn_gap(project_dir=directory)
+    console.print(
+        "Same-speaker segments separated by at most this many seconds are "
+        "merged into one turn in report.md / report.html."
+    )
+    console.print(
+        f"Default is {DEFAULT_REPORT_TURN_GAP_SECONDS:g}s. "
+        "CLI --report-turn-gap overrides this setting."
+    )
+    console.print()
+
+    raw = typer.prompt(
+        "Report turn gap (seconds)",
+        default=str(current),
+    ).strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        console.print("[red]Invalid number. Nothing was saved.[/red]")
+        return
+    if value < 0:
+        console.print("[red]Gap must be greater than or equal to 0.[/red]")
+        return
+
+    stored = f"{value:g}"
+    written = upsert_env_value(REPORT_TURN_GAP_KEY, stored, directory)
+    console.print(
+        f"[green]✔[/green] Saved {REPORT_TURN_GAP_KEY}={stored} to {written}"
     )
 
 

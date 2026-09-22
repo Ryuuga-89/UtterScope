@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 from utterscope.models import Transcript
 
-# Gaps at or below this are treated as continuous speech within a turn.
+# Gaps at or below this are treated as continuous speech within a turn
+# for LLM Pass B and speaking metrics.
 TURN_GAP_SECONDS = 0.05
 
 
@@ -29,8 +30,19 @@ def build_dialogue_turns(
     transcript: Transcript,
     *,
     learner_speaker: str | None = None,
+    max_gap_seconds: float = TURN_GAP_SECONDS,
 ) -> list[DialogueTurn]:
-    """Merge consecutive same-speaker segments into dialogue turns."""
+    """Merge consecutive same-speaker segments into dialogue turns.
+
+    Segments from the same speaker are merged when the gap between them is at
+    most ``max_gap_seconds``. LLM feedback keeps the tight default
+    (``TURN_GAP_SECONDS``); report display uses a larger gap so consecutive
+    speech reads as one turn.
+    """
+    if max_gap_seconds < 0:
+        msg = "max_gap_seconds must be >= 0"
+        raise ValueError(msg)
+
     ordered = sorted(
         (segment for segment in transcript.segments if segment.speaker is not None),
         key=lambda segment: (segment.start, segment.end),
@@ -43,7 +55,7 @@ def build_dialogue_turns(
         if merged:
             prev_speaker, prev_start, prev_end, prev_text = merged[-1]
             gap = segment.start - prev_end
-            if prev_speaker == speaker_id and gap <= TURN_GAP_SECONDS:
+            if prev_speaker == speaker_id and gap <= max_gap_seconds:
                 merged_text = f"{prev_text} {text}".strip() if text else prev_text
                 merged[-1] = (
                     speaker_id,

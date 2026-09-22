@@ -42,8 +42,8 @@
 * 内部データ管理：Pydantic
 * 音声前処理：FFmpeg
 * 発話区間検出：Silero VAD
-* MLフレームワーク：MLX Whisper
-* 話者識別：pyannote.audio
+* MLフレームワーク：whispermlx（MLX Whisper）
+* 話者識別：whispermlx / pyannote.audio
 * 高度英語評価：LLM API
 * HTML：Jinja2
 * 履歴索引：SQLite

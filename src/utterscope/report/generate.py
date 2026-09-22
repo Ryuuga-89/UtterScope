@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from utterscope.models import (
+    DEFAULT_REPORT_TURN_GAP_SECONDS,
     AnalysisDocument,
     FeedbackDocument,
     TranscriptDocument,
@@ -25,6 +26,7 @@ def write_reports(
     feedback_document: FeedbackDocument | None = None,
     duration_seconds: float | None = None,
     audio_filename: str | None = None,
+    turn_gap_seconds: float | None = None,
 ) -> tuple[Path, Path]:
     """Render and write ``report.md`` and ``report.html`` under ``output_dir``.
 
@@ -36,6 +38,11 @@ def write_reports(
         feedback_document,
         duration_seconds=duration_seconds,
         audio_filename=audio_filename,
+        turn_gap_seconds=(
+            DEFAULT_REPORT_TURN_GAP_SECONDS
+            if turn_gap_seconds is None
+            else turn_gap_seconds
+        ),
     )
     md_path = output_dir / REPORT_MD_FILENAME
     html_path = output_dir / REPORT_HTML_FILENAME

@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from utterscope.asr import AsrBackend, MlxWhisperBackend
+from utterscope.asr import AsrBackend, WhisperMlxBackend
 from utterscope.audio import prepare_audio
 from utterscope.diarization import (
-    DiarizationBackend,
     FixedLearnerSelector,
     LearnerSelector,
-    PyannoteDiarizationBackend,
-    assign_speakers,
     build_speaker_previews,
 )
 from utterscope.llm import FeedbackBackend, generate_feedback_document
@@ -36,7 +33,6 @@ TRANSCRIPT_FILENAME = "transcript.json"
 ANALYSIS_FILENAME = "analysis.json"
 FEEDBACK_FILENAME = "feedback.json"
 WORK_DIRNAME = ".utterscope"
-DEFAULT_NUM_SPEAKERS = 2
 
 
 class PipelineProgress(Protocol):
@@ -58,9 +54,8 @@ class PipelineProgress(Protocol):
 def run(
     request: AnalyzeRequest,
     *,
-    asr: AsrBackend | None = None,
+    backend: AsrBackend | None = None,
     vad: VadBackend | None = None,
-    diarization: DiarizationBackend | None = None,
     learner_selector: LearnerSelector | None = None,
     feedback_backend: FeedbackBackend | None = None,
     progress: PipelineProgress | None = None,
@@ -68,9 +63,9 @@ def run(
 ) -> AnalyzeResult:
     """Run the analyze pipeline for a single audio file.
 
-    Prepares audio, detects speech, transcribes, diarizes speakers,
-    selects the learner, computes speaking metrics, optionally runs LLM
-    feedback, and writes JSON outputs plus Markdown/HTML reports.
+    Prepares audio, detects speech, runs whispermlx transcription with
+    speaker diarization, selects the learner, computes speaking metrics,
+    optionally runs LLM feedback, and writes JSON outputs plus reports.
     """
     request.output_dir.mkdir(parents=True, exist_ok=True)
     work_dir = request.output_dir / WORK_DIRNAME
@@ -89,27 +84,21 @@ def run(
         progress.end("detect speech", f"{interval_count} intervals")
 
     if progress is not None:
-        progress.begin("transcribe")
+        progress.begin("transcribe + identify speakers")
     with silence_third_party(enabled=quiet):
-        transcript = (asr or MlxWhisperBackend()).transcribe(
+        transcript = (backend or WhisperMlxBackend()).transcribe(
             prepared,
             model=request.model,
         )
-    if progress is not None:
-        progress.end("transcribe", f"{len(transcript.segments)} segments")
-
-    if progress is not None:
-        progress.begin("identify speakers")
-    with silence_third_party(enabled=quiet):
-        diarization_result = (diarization or PyannoteDiarizationBackend()).diarize(
-            prepared,
-            num_speakers=DEFAULT_NUM_SPEAKERS,
-        )
-        transcript = assign_speakers(transcript, diarization_result)
+    speakers = {
+        segment.speaker
+        for segment in transcript.segments
+        if segment.speaker is not None
+    }
     if progress is not None:
         progress.end(
-            "identify speakers",
-            f"{len(diarization_result.speaker_ids())} speakers",
+            "transcribe + identify speakers",
+            f"{len(transcript.segments)} segments, {len(speakers)} speakers",
         )
 
     previews = build_speaker_previews(transcript)
@@ -212,6 +201,7 @@ def run(
         audio_filename=(
             source_audio_path.name if source_audio_path is not None else None
         ),
+        turn_gap_seconds=request.report_turn_gap_seconds,
     )
     if progress is not None:
         progress.end("generate reports", "report.md, report.html")

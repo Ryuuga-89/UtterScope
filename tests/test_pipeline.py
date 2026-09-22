@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from utterscope.audio import PREPARED_FILENAME, PreparedAudio
-from utterscope.diarization import DiarizationResult, SpeakerTurn
 from utterscope.llm.schemas import PassAResult, PassBIssue, PassBResult
 from utterscope.models import AnalyzeRequest, Segment, Transcript
 from utterscope.pipeline import TRANSCRIPT_FILENAME, run
@@ -19,8 +18,8 @@ class FakeAsrBackend:
         return Transcript(
             language="en",
             segments=[
-                Segment(start=0.0, end=1.0, text="Hello"),
-                Segment(start=1.0, end=2.0, text="Hi"),
+                Segment(start=0.0, end=1.0, text="Hello", speaker="SPEAKER_00"),
+                Segment(start=1.0, end=2.0, text="Hi", speaker="SPEAKER_01"),
             ],
             full_text="Hello Hi",
         )
@@ -30,23 +29,6 @@ class FakeVadBackend:
     def detect(self, audio: PreparedAudio) -> VadResult:
         assert audio.path.is_file()
         return VadResult(intervals=[SpeechInterval(start=0.1, end=1.9)])
-
-
-class FakeDiarizationBackend:
-    def diarize(
-        self,
-        audio: PreparedAudio,
-        *,
-        num_speakers: int | None = 2,
-    ) -> DiarizationResult:
-        assert audio.path.is_file()
-        assert num_speakers == 2
-        return DiarizationResult(
-            turns=[
-                SpeakerTurn(start=0.0, end=1.0, speaker_id="SPEAKER_00"),
-                SpeakerTurn(start=1.0, end=2.0, speaker_id="SPEAKER_01"),
-            ]
-        )
 
 
 class RecordingProgress:
@@ -92,14 +74,13 @@ def test_run_assigns_speakers_and_learner(sample_audio: Path, tmp_path: Path) ->
     result = run(
         AnalyzeRequest(
             audio_path=sample_audio,
-            model="tiny",
+            model="large-v3",
             output_dir=output_dir,
             llm=False,
             learner_speaker="SPEAKER_01",
         ),
-        asr=FakeAsrBackend(),
+        backend=FakeAsrBackend(),
         vad=FakeVadBackend(),
-        diarization=FakeDiarizationBackend(),
         progress=progress,
     )
 
@@ -125,10 +106,8 @@ def test_run_assigns_speakers_and_learner(sample_audio: Path, tmp_path: Path) ->
         "end:prepare audio:1.0s",
         "begin:detect speech",
         "end:detect speech:1 intervals",
-        "begin:transcribe",
-        "end:transcribe:2 segments",
-        "begin:identify speakers",
-        "end:identify speakers:2 speakers",
+        "begin:transcribe + identify speakers",
+        "end:transcribe + identify speakers:2 segments, 2 speakers",
         "begin:analyze learner speech",
         "end:analyze learner speech:60 wpm",
         "begin:write results",
@@ -147,14 +126,13 @@ def test_run_writes_feedback_when_llm_enabled(
     result = run(
         AnalyzeRequest(
             audio_path=sample_audio,
-            model="tiny",
+            model="large-v3",
             output_dir=output_dir,
             llm=True,
             learner_speaker="SPEAKER_01",
         ),
-        asr=FakeAsrBackend(),
+        backend=FakeAsrBackend(),
         vad=FakeVadBackend(),
-        diarization=FakeDiarizationBackend(),
         feedback_backend=FakeFeedbackBackend(),
         progress=progress,
     )

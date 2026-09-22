@@ -6,7 +6,7 @@ UtterScopeは、録音された会話や語学レッスンを分析するため�
 
 音声ファイルを渡すだけで、会話の文字起こし、話者の識別、学習者の発話の抽出を行い、発話時間・発話速度・ポーズ・フィラーなどの指標を算出します。音声処理は可能な限りローカル環境で完結します。
 
-```bash id="r04lqy"
+```bash
 utterscope analyze lesson.mp3
 ```
 
@@ -128,12 +128,10 @@ FFmpeg
   ▼
 発話区間検出（VAD）
   │
-  ├───────────────┐
-  ▼               ▼
-音声認識        話者分離
-  │               │
-  └───────┬───────┘
-          ▼
+  ▼
+whispermlx（音声認識 + 話者分離）
+  │
+  ▼
     構造化された文字起こし
           │
      ┌────┴────┐
@@ -146,7 +144,7 @@ FFmpeg
        レポート
 ```
 
-UtterScopeでは、文字起こし・話者分離・言語分析などの主要コンポーネントを独立させ、将来的にそれぞれのバックエンドを交換できる設計を目指します。
+UtterScopeでは、文字起こし・言語分析などの主要コンポーネントを独立させ、将来的にそれぞれのバックエンドを交換できる設計を目指します。
 
 ## インストール
 
@@ -154,24 +152,24 @@ UtterScopeでは、文字起こし・話者分離・言語分析などの主要�
 
 リポジトリをcloneします。
 
-```bash id="pypkeg"
+```bash
 git clone <repository-url>
 cd utterscope
 ```
 
 [uv]を利用して依存関係をインストールします。
 
-```bash id="nqq1ow"
+```bash
 uv sync
 ```
 
 UtterScopeを実行します。
 
-```bash id="2nq6m6"
+```bash
 uv run utterscope analyze path/to/lesson.mp3
 ```
 
-初回は対話セットアップでトークンを保存できます（話者分離用の Hugging Face トークン、LLM 用の Gemini API キー）。
+初回は対話セットアップでトークンを保存できます（whispermlx 話者分離用の Hugging Face トークン、LLM 用の Gemini API キー）。
 
 ```bash
 uv run utterscope setup
@@ -190,7 +188,7 @@ utterscope
 
 またはフラグ付きで録音レッスンを分析します。話者が複数いる場合は、○/● の選択 UI で学習者を選びます。
 
-```bash id="wnt6fp"
+```bash
 utterscope analyze lesson.mp3
 ```
 
@@ -200,9 +198,9 @@ utterscope analyze lesson.mp3
 utterscope analyze lesson.mp3 --learner SPEAKER_01
 ```
 
-使用するASRモデルを指定します。
+使用するASRモデルを指定します（既定: `large-v3`）。
 
-```bash id="5ky9v9"
+```bash
 utterscope analyze lesson.mp3 --model large-v3-turbo
 ```
 
@@ -212,11 +210,17 @@ utterscope analyze lesson.mp3 --model large-v3-turbo
 utterscope analyze lesson.mp3 --long-pause-threshold 1.5
 ```
 
-`utterscope setup` でも同じ閾値を `.env` の `UTTERSCOPE_LONG_PAUSE_THRESHOLD` として保存できます。
+レポートで同じ話者の連続発話をまとめる最大無音秒数を変更します（既定: 5.0。`.env` / setup の `UTTERSCOPE_REPORT_TURN_GAP`、CLI `--report-turn-gap`）。
+
+```bash
+utterscope analyze lesson.mp3 --report-turn-gap 5
+```
+
+`utterscope setup` でも同じ閾値を `.env` に保存できます。
 
 LLMによる分析を使用せずに実行します。
 
-```bash id="v3k7e4"
+```bash
 utterscope analyze lesson.mp3 --no-llm
 ```
 
@@ -230,7 +234,7 @@ utterscope history --limit 50
 解析結果の出力ルートを指定します。`--output` はルートで、その中に
 `YYMMDD-n_<音声stem>/` のランディレクトリが作られます（既定ルート: `./results`）:
 
-```bash id="eqt32b"
+```bash
 utterscope analyze lesson.mp3 --learner SPEAKER_01 --output ./results
 ```
 
@@ -262,8 +266,8 @@ UtterScopeは主にPythonで実装します。
 | データモデル        | Pydantic              |
 | 音声処理          | FFmpeg                |
 | 発話区間検出        | Silero VAD            |
-| 音声認識          | MLX Whisper / Whisper |
-| 話者分離          | pyannote.audio        |
+| 音声認識          | whispermlx（MLX Whisper） |
+| 話者分離          | whispermlx / pyannote     |
 | レポート生成        | Jinja2                |
 | データ保存         | JSON / SQLite         |
 | Lint / Format | Ruff                  |
